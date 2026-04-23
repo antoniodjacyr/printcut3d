@@ -48,7 +48,9 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     loginEmail: "Email",
     loginPassword: "Password",
     loginSubmit: "Sign in",
-    loginError: "Could not sign in. Check your credentials."
+    loginError: "Could not sign in. Check your credentials.",
+    loginHint:
+      "If it still fails: (1) Supabase → Authentication → URL Configuration → set Site URL to https://printcut3d.com and add redirect https://printcut3d.com/** (2) If “Confirm email” is on, confirm the user’s inbox or disable for testing. (3) Use the legacy anon JWT (eyJ…) in NEXT_PUBLIC_SUPABASE_ANON_KEY if you use sb_publishable keys."
   },
   pt: {
     navMarketplace: "Loja",
@@ -83,7 +85,9 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     loginEmail: "E-mail",
     loginPassword: "Senha",
     loginSubmit: "Entrar",
-    loginError: "Não foi possível entrar. Verifique e-mail e senha."
+    loginError: "Não foi possível entrar. Verifique e-mail e senha.",
+    loginHint:
+      "Se continuar falhando: (1) Supabase → Authentication → URL Configuration → Site URL = https://printcut3d.com e redirect https://printcut3d.com/** (2) Se “Confirmar e-mail” estiver ativo, confirme o e-mail do usuário ou desative para testes. (3) Coloque o anon JWT antigo (eyJ…) em NEXT_PUBLIC_SUPABASE_ANON_KEY se estiver usando chave sb_publishable."
   },
   es: {
     navMarketplace: "Tienda",
@@ -118,7 +122,9 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     loginEmail: "Correo",
     loginPassword: "Contraseña",
     loginSubmit: "Entrar",
-    loginError: "No se pudo iniciar sesión. Revisa tus datos."
+    loginError: "No se pudo iniciar sesión. Revisa tus datos.",
+    loginHint:
+      "Si sigue fallando: (1) Supabase → Authentication → URL Configuration → Site URL https://printcut3d.com y redirect https://printcut3d.com/** (2) Si “Confirmar correo” está activo, confirma el email o desactívalo para pruebas. (3) Usa el anon JWT legacy (eyJ…) en NEXT_PUBLIC_SUPABASE_ANON_KEY si usas claves sb_publishable."
   }
 };
 

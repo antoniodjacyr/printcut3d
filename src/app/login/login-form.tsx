@@ -35,7 +35,8 @@ export function LoginForm() {
 
     const { error: signError } = await supabase.auth.signInWithPassword({ email, password });
     if (signError) {
-      setError(t.loginError);
+      const detail = signError.message?.trim();
+      setError(detail ? `${t.loginError} (${detail})` : t.loginError);
       setLoading(false);
       return;
     }
@@ -49,6 +50,7 @@ export function LoginForm() {
       <div className="tech-card rounded-2xl p-8">
         <h1 className="text-2xl font-bold text-white">{t.loginTitle}</h1>
         <p className="mt-2 text-sm text-zinc-400">{t.loginSubtitle}</p>
+        <p className="mt-3 text-xs leading-relaxed text-zinc-500">{t.loginHint}</p>
 
         <form className="mt-8 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
           <label className="block text-sm text-zinc-300">
