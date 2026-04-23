@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import { Locale, supportedLocales } from "@/lib/i18n";
 
 type LocalizedText = Record<Locale, string>;
@@ -26,11 +25,11 @@ export async function buildLocalizedProductText(params: {
     description: { en: params.description, pt: params.description, es: params.description }
   };
 
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
     return fallback;
   }
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const targetLocales = supportedLocales.filter((locale) => locale !== sourceLocale);
 
   const prompt = `You are a senior localization and copy editor for an e-commerce marketplace.
@@ -51,16 +50,20 @@ Source title: ${params.title}
 Source description: ${params.description}
 Required target locales: ${targetLocales.join(", ")}`;
 
-  const response = await client.responses.create({
-    model: "gpt-4o",
-    input: prompt,
-    temperature: 0.2
-  });
-
-  const raw = response.output_text?.trim();
-  if (!raw) return fallback;
-
   try {
+    const { default: OpenAI } = await import("openai");
+    const client = new OpenAI({ apiKey });
+
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o",
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }]
+    });
+
+    const raw = completion.choices[0]?.message?.content?.trim();
+    if (!raw) return fallback;
+
     const parsed = JSON.parse(raw) as ProductLanguageResult;
     const hasAllLocales = supportedLocales.every((locale) => parsed.title?.[locale] && parsed.description?.[locale]);
     if (!hasAllLocales) return fallback;

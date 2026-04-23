@@ -15,6 +15,16 @@ const parseNumber = (value: FormDataEntryValue | null) => {
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        {
+          error:
+            "Supabase não configurado no servidor. Defina NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY nas variáveis do Cloudflare Pages."
+        },
+        { status: 503 }
+      );
+    }
+
     const formData = await request.formData();
     const storeId = formData.get("storeId")?.toString().trim();
     const originalLanguage = formData.get("originalLanguage")?.toString().trim() || "en";

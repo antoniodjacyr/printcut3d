@@ -49,7 +49,17 @@ export default function DashboardPage() {
         method: "POST",
         body: formData
       });
-      const data = await response.json();
+      const raw = await response.text();
+      let data: { error?: string; productId?: string } = {};
+      try {
+        data = raw ? (JSON.parse(raw) as typeof data) : {};
+      } catch {
+        throw new Error(
+          response.ok
+            ? "Resposta inválida do servidor."
+            : `Erro ${response.status}: ${raw.slice(0, 200) || response.statusText}`
+        );
+      }
       if (!response.ok) {
         throw new Error(data.error || "Falha ao salvar produto.");
       }
