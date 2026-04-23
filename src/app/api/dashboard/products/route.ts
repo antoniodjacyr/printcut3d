@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { buildLocalizedProductText } from "@/lib/server/product-language";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
+export const runtime = "edge";
+
 const storageBucket = process.env.SUPABASE_STORAGE_BUCKET || "product-images";
 
 const parseBoolean = (value: FormDataEntryValue | null) => value === "true";
