@@ -1,0 +1,7 @@
+# Cloudflare Pages — runtime flags for @cloudflare/next-on-pages
+# Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+
+name = "printcut3d"
+pages_build_output_dir = ".vercel/output/static"
+compatibility_date = "2026-04-23"
+compatibility_flags = ["nodejs_compat"]
