@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { buildLocalizedProductText } from "@/lib/server/product-language";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
+import type { SupabaseCookieToSet } from "@/lib/supabase/cookie-types";
 
 export const runtime = "edge";
 
@@ -44,9 +45,11 @@ export async function POST(request: Request) {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: SupabaseCookieToSet[]) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
+            );
           } catch {
             /* ignore refresh cookie edge cases */
           }
