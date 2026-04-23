@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { dictionary } from "@/lib/i18n";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -19,13 +19,13 @@ export function Header() {
     if (!supabase) return;
 
     let cancelled = false;
-    void supabase.auth.getUser().then(({ data }) => {
-      if (!cancelled) setUser(data.user ?? null);
+    void supabase.auth.getUser().then((result: { data: { user: User | null } }) => {
+      if (!cancelled) setUser(result.data.user ?? null);
     });
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null);
     });
 
