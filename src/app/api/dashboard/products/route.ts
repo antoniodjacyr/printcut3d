@@ -1,3 +1,5 @@
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { buildLocalizedProductText } from "@/lib/server/product-language";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
@@ -15,7 +17,9 @@ const parseNumber = (value: FormDataEntryValue | null) => {
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+    const rawKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
+    if (!rawUrl || !rawKey) {
       return NextResponse.json(
         {
           error:
@@ -23,6 +27,38 @@ export async function POST(request: Request) {
         },
         { status: 503 }
       );
+    }
+
+    const publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
+    if (!publicUrl || !anonKey) {
+      return NextResponse.json(
+        { error: "Defina NEXT_PUBLIC_SUPABASE_ANON_KEY para autenticação da API." },
+        { status: 503 }
+      );
+    }
+
+    const cookieStore = await cookies();
+    const authClient = createServerClient(publicUrl, anonKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+          } catch {
+            /* ignore refresh cookie edge cases */
+          }
+        }
+      }
+    });
+
+    const {
+      data: { user }
+    } = await authClient.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Faça login para gerenciar produtos." }, { status: 401 });
     }
 
     const formData = await request.formData();
