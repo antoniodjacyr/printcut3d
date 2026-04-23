@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { buildLocalizedProductText } from "@/lib/server/product-language";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 import type { SupabaseCookieToSet } from "@/lib/supabase/cookie-types";
+import { sanitizeSupabaseKey, sanitizeSupabaseUrl } from "@/lib/supabase/env-sanitize";
 
 export const runtime = "edge";
 
@@ -30,8 +31,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
+    const publicUrl = sanitizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+    const anonKey = sanitizeSupabaseKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     if (!publicUrl || !anonKey) {
       return NextResponse.json(
         { error: "Defina NEXT_PUBLIC_SUPABASE_ANON_KEY para autenticação da API." },

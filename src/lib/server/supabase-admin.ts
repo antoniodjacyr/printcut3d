@@ -1,10 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-
-const trimEnv = (value: string | undefined) => value?.trim().replace(/^["']|["']$/g, "") ?? "";
+import { sanitizeSupabaseKey, sanitizeSupabaseUrl } from "@/lib/supabase/env-sanitize";
 
 export const getSupabaseAdmin = () => {
-  const supabaseUrl = trimEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const serviceRoleKey = trimEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabaseUrl = sanitizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const serviceRoleKey = sanitizeSupabaseKey(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error("Missing Supabase server env vars: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY");
