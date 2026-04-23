@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  pending
+  in_production
+  shipped
+}
+
+model Store {
+  id             String    @id @default(uuid()) @db.Uuid
+  ownerUserId    String    @db.Uuid
+  name           String
+  logoUrl        String?
+  bio            String?
+  socialLinks    Json      @default("{}")
+  commissionRate Decimal   @default(8.00) @db.Decimal(5, 2)
+  isAdminStore   Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  products       Product[]
+  orders         Order[]
+}
+
+model Product {
+  id               String         @id @default(uuid()) @db.Uuid
+  storeId          String         @db.Uuid
+  title            Json
+  description      Json
+  priceUsd         Decimal        @db.Decimal(12, 2)
+  weightLbs        Decimal?       @db.Decimal(10, 3)
+  dimensionsIn     Json           @default("{}")
+  hasCustomization Boolean        @default(false)
+  active           Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  store            Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  images           ProductImage[]
+  reviews          Review[]
+  orderItems       OrderItem[]
+  cartItems        CartItem[]
+}
+
+model ProductImage {
+  id          String   @id @default(uuid()) @db.Uuid
+  productId   String   @db.Uuid
+  storagePath String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id                    String      @id @default(uuid()) @db.Uuid
+  buyerUserId           String      @db.Uuid
+  storeId               String      @db.Uuid
+  status                OrderStatus @default(pending)
+  subtotalUsd           Decimal     @default(0) @db.Decimal(12, 2)
+  commissionRateApplied Decimal     @default(8) @db.Decimal(5, 2)
+  commissionAmountUsd   Decimal     @default(0) @db.Decimal(12, 2)
+  stripePaymentIntentId String?
+  shippingStateUs       String?
+  buyerLocale           String      @default("en")
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  store                 Store       @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  items                 OrderItem[]
+  reviews               Review[]
+}
+
+model OrderItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  orderId           String   @db.Uuid
+  productId         String   @db.Uuid
+  quantity          Int
+  unitPriceUsd      Decimal  @db.Decimal(12, 2)
+  customizationText String?
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+}
+
+model Review {
+  id             String   @id @default(uuid()) @db.Uuid
+  productId      String   @db.Uuid
+  orderId        String?  @db.Uuid
+  reviewerUserId String   @db.Uuid
+  rating         Int
+  comment        String?
+  photoUrl       String?
+  createdAt      DateTime @default(now())
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order          Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+}
+
+model Cart {
+  id             String     @id @default(uuid()) @db.Uuid
+  userId         String?    @db.Uuid
+  email          String?
+  recoveredAt    DateTime?
+  lastActivityAt DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+  items          CartItem[]
+}
+
+model CartItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  cartId            String   @db.Uuid
+  productId         String   @db.Uuid
+  quantity          Int
+  customizationText String?
+  cart              Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
