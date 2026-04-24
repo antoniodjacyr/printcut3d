@@ -21,10 +21,37 @@ export function toHeaderSafeAscii(value: string): string {
 
 export function sanitizeSupabaseUrl(value: string | undefined): string {
   if (!value) return "";
-  return toHeaderSafeAscii(value);
+  let v = value.trim().replace(/^\uFEFF/, "");
+  v = v.replace(/\s+/g, "");
+  return toHeaderSafeAscii(v);
 }
 
+/**
+ * Supabase anon keys are single-line. Multi-line paste or stray quotes in
+ * Cloudflare / .env often yields "Invalid API key" from GoTrue.
+ */
 export function sanitizeSupabaseKey(value: string | undefined): string {
   if (!value) return "";
-  return toHeaderSafeAscii(value);
+  let v = value.trim().replace(/^\uFEFF/, "");
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    v = v.slice(1, -1).trim();
+  }
+  v = v.replace(/\s+/g, "");
+  return toHeaderSafeAscii(v);
+}
+
+export type SupabaseAnonKeyKind = "missing" | "jwt" | "publishable" | "other";
+
+export function getSupabaseAnonKeyMeta(raw: string | undefined): { present: boolean; kind: SupabaseAnonKeyKind } {
+  const sanitized = sanitizeSupabaseKey(raw);
+  if (!sanitized) {
+    return { present: false, kind: "missing" };
+  }
+  if (sanitized.startsWith("eyJ")) {
+    return { present: true, kind: "jwt" };
+  }
+  if (sanitized.startsWith("sb_publishable")) {
+    return { present: true, kind: "publishable" };
+  }
+  return { present: true, kind: "other" };
 }

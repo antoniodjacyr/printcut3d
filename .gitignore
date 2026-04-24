@@ -1,0 +1,16 @@
+# dependencies
+node_modules/
+
+# next / cloudflare
+.next/
+.vercel/
+.wrangler/
+
+# env
+.env
+.env*.local
+
+# debug / os
+npm-debug.log*
+.DS_Store
+*.tsbuildinfo

@@ -1,10 +1,7 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { requireDashboardUser } from "@/lib/server/dashboard-auth";
 import { buildLocalizedProductText } from "@/lib/server/product-language";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
-import type { SupabaseCookieToSet } from "@/lib/supabase/cookie-types";
-import { sanitizeSupabaseKey, sanitizeSupabaseUrl } from "@/lib/supabase/env-sanitize";
 
 export const runtime = "edge";
 
@@ -31,38 +28,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const publicUrl = sanitizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-    const anonKey = sanitizeSupabaseKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-    if (!publicUrl || !anonKey) {
-      return NextResponse.json(
-        { error: "Defina NEXT_PUBLIC_SUPABASE_ANON_KEY para autenticação da API." },
-        { status: 503 }
-      );
-    }
-
-    const cookieStore = await cookies();
-    const authClient = createServerClient(publicUrl, anonKey, {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: SupabaseCookieToSet[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
-            );
-          } catch {
-            /* ignore refresh cookie edge cases */
-          }
-        }
-      }
-    });
-
-    const {
-      data: { user }
-    } = await authClient.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Faça login para gerenciar produtos." }, { status: 401 });
+    const auth = await requireDashboardUser();
+    if ("response" in auth) {
+      return auth.response;
     }
 
     const formData = await request.formData();
@@ -75,6 +43,15 @@ export async function POST(request: Request) {
     const widthIn = parseNumber(formData.get("widthIn"));
     const heightIn = parseNumber(formData.get("heightIn"));
     const depthIn = parseNumber(formData.get("depthIn"));
+    const stockQty = parseNumber(formData.get("stockQty"));
+    const variantLabel = formData.get("variantLabel")?.toString().trim() || null;
+    const seoTagsRaw = formData.get("seoTags")?.toString().trim() || "";
+    const seoTags = seoTagsRaw
+      ? seoTagsRaw
+          .split(/[,;]+/)
+          .map((t) => t.trim().toLowerCase())
+          .filter(Boolean)
+      : [];
     const hasCustomization = parseBoolean(formData.get("hasCustomization"));
     const files = formData.getAll("images").filter((entry) => entry instanceof File) as File[];
 
@@ -100,7 +77,10 @@ export async function POST(request: Request) {
         dimensions_in: {
           width: widthIn,
           height: heightIn,
-          depth: depthIn
+          depth: depthIn,
+          stock_qty: stockQty,
+          variant_label: variantLabel,
+          seo_tags: seoTags
         },
         has_customization: hasCustomization
       })

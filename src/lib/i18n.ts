@@ -48,14 +48,43 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     sectionSoon: "Marketplace launch",
     sectionSoonBody: "Seller onboarding, Stripe Connect split payouts, and live inventory are shipping next.",
     footerTag: "Print & Cut 3D — American manufacturing, global reach.",
-    loginTitle: "Seller sign-in",
-    loginSubtitle: "Use the email and password configured in Supabase Auth.",
+    loginTitle: "Sign in",
+    loginSubtitle: "Seller dashboard — use the email and password from Supabase Auth.",
     loginEmail: "Email",
     loginPassword: "Password",
     loginSubmit: "Sign in",
+    loginLoading: "Signing in…",
     loginError: "Could not sign in. Check your credentials.",
-    loginHint:
-      "If it still fails: (1) Supabase → Authentication → URL Configuration → set Site URL to https://printcut3d.com and add redirect https://printcut3d.com/** (2) If “Confirm email” is on, confirm the user’s inbox or disable for testing. (3) Use the legacy anon JWT (eyJ…) in NEXT_PUBLIC_SUPABASE_ANON_KEY if you use sb_publishable keys."
+    loginEnvMissing:
+      "Supabase is not fully configured on this deployment: add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY under Cloudflare Pages → Settings → Environment variables, then trigger a new deployment.",
+    loginEnvPublishable:
+      "This build uses a publishable key (sb_publishable…). If authentication fails with “Invalid API key”, set NEXT_PUBLIC_SUPABASE_ANON_KEY to the legacy anon JWT (starts with eyJ…) from Supabase → Project Settings → API, then redeploy.",
+    loginEnvOtherKey:
+      "The anon key does not look like a standard JWT. Make sure you copied the anon public key from Supabase → API, not the service_role secret.",
+    loginErrInvalidKey:
+      "Invalid Supabase API key. In Cloudflare Pages, set NEXT_PUBLIC_SUPABASE_ANON_KEY to the anon public JWT (eyJ…) from Supabase → Project Settings → API, save, redeploy, and try again.",
+    loginErrBadCredentials: "Wrong email or password.",
+    loginErrConfirmEmail:
+      "This account’s email is not confirmed yet. Open the Supabase confirmation link from your inbox (and spam), or in Supabase go to Authentication → Users → your user → confirm manually. For testing only: Authentication → Providers → Email → turn off “Confirm email”.",
+    loginErrGeneric: "Could not sign in.",
+    loginHelpToggle: "Still stuck? Checklist",
+    loginHelpL1:
+      "Supabase → Authentication → URL Configuration: Site URL https://printcut3d.com and redirect https://printcut3d.com/**",
+    loginHelpL2: "If “Confirm email” is enabled, confirm the user inbox or turn it off temporarily for testing.",
+    loginHelpL3: "Prefer the legacy anon JWT (eyJ…) in NEXT_PUBLIC_SUPABASE_ANON_KEY when publishable keys cause errors.",
+    dashBrandLabel: "PrintCut3D",
+    dashHeading: "Dashboard",
+    dashTagline:
+      "Overview, catalog, production, shipping, finance, reviews, marketing, and content — KPIs load on the server; charts update in the browser.",
+    dashBackSite: "Back to site",
+    dashNavOverview: "Overview",
+    dashNavCatalog: "Catalog",
+    dashNavPipeline: "Production",
+    dashNavShipping: "Shipping",
+    dashNavFinance: "Finance",
+    dashNavReviews: "Reviews",
+    dashNavMarketing: "Marketing",
+    dashNavContent: "Content"
   },
   pt: {
     navMarketplace: "Loja",
@@ -90,14 +119,43 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     sectionSoon: "Lançamento do marketplace",
     sectionSoonBody: "Onboarding de vendedores, repasses Stripe Connect e estoque ao vivo chegam em breve.",
     footerTag: "Print & Cut 3D — manufatura americana, alcance global.",
-    loginTitle: "Acesso do vendedor",
-    loginSubtitle: "Use o e-mail e a senha criados no Supabase Auth.",
+    loginTitle: "Entrar",
+    loginSubtitle: "Painel do vendedor — use o e-mail e a senha do Supabase Auth.",
     loginEmail: "E-mail",
     loginPassword: "Senha",
     loginSubmit: "Entrar",
+    loginLoading: "Entrando…",
     loginError: "Não foi possível entrar. Verifique e-mail e senha.",
-    loginHint:
-      "Se continuar falhando: (1) Supabase → Authentication → URL Configuration → Site URL = https://printcut3d.com e redirect https://printcut3d.com/** (2) Se “Confirmar e-mail” estiver ativo, confirme o e-mail do usuário ou desative para testes. (3) Coloque o anon JWT antigo (eyJ…) em NEXT_PUBLIC_SUPABASE_ANON_KEY se estiver usando chave sb_publishable."
+    loginEnvMissing:
+      "Supabase incompleto neste deploy: em Cloudflare Pages → Settings → Environment variables, defina NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY e faça um novo deploy.",
+    loginEnvPublishable:
+      "Este build usa chave publishable (sb_publishable…). Se aparecer “Invalid API key”, use o JWT anon legado (começa com eyJ…) em NEXT_PUBLIC_SUPABASE_ANON_KEY (Supabase → Project Settings → API) e faça redeploy.",
+    loginEnvOtherKey:
+      "A chave anon não parece um JWT padrão. Confira se copiou a chave anon pública em API, não a service_role.",
+    loginErrInvalidKey:
+      "Chave de API do Supabase inválida. No Cloudflare Pages, defina NEXT_PUBLIC_SUPABASE_ANON_KEY como o JWT anon público (eyJ…) em Supabase → Project Settings → API, salve, redeploy e tente de novo.",
+    loginErrBadCredentials: "E-mail ou senha incorretos.",
+    loginErrConfirmEmail:
+      "Este e-mail ainda não foi confirmado. Abra o link de confirmação que o Supabase enviou (verifique spam), ou em Supabase: Authentication → Users → seu utilizador → confirmar manualmente. Só para testes: Authentication → Providers → Email → desligar “Confirm email”.",
+    loginErrGeneric: "Não foi possível entrar.",
+    loginHelpToggle: "Ainda com problema? Checklist",
+    loginHelpL1:
+      "Supabase → Authentication → URL Configuration: Site URL https://printcut3d.com e redirect https://printcut3d.com/**",
+    loginHelpL2: "Com “Confirmar e-mail” ativo, confirme o usuário ou desative temporariamente para testes.",
+    loginHelpL3: "Prefira o JWT anon legado (eyJ…) em NEXT_PUBLIC_SUPABASE_ANON_KEY se a chave publishable falhar.",
+    dashBrandLabel: "PrintCut3D",
+    dashHeading: "Painel",
+    dashTagline:
+      "Visão geral, catálogo, produção, logística, financeiro, reviews, marketing e conteúdo — KPIs no servidor; gráficos ao vivo no navegador.",
+    dashBackSite: "Voltar ao site",
+    dashNavOverview: "Visão geral",
+    dashNavCatalog: "Catálogo",
+    dashNavPipeline: "Produção",
+    dashNavShipping: "Logística",
+    dashNavFinance: "Financeiro",
+    dashNavReviews: "Reviews",
+    dashNavMarketing: "Marketing",
+    dashNavContent: "Conteúdo"
   },
   es: {
     navMarketplace: "Tienda",
@@ -132,14 +190,43 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     sectionSoon: "Lanzamiento del marketplace",
     sectionSoonBody: "Onboarding de vendedores, pagos divididos con Stripe Connect e inventario en vivo, próximamente.",
     footerTag: "Print & Cut 3D — manufactura estadounidense, alcance global.",
-    loginTitle: "Acceso vendedores",
-    loginSubtitle: "Usa el correo y la contraseña configurados en Supabase Auth.",
+    loginTitle: "Iniciar sesión",
+    loginSubtitle: "Panel del vendedor — usa el correo y la contraseña de Supabase Auth.",
     loginEmail: "Correo",
     loginPassword: "Contraseña",
     loginSubmit: "Entrar",
+    loginLoading: "Iniciando sesión…",
     loginError: "No se pudo iniciar sesión. Revisa tus datos.",
-    loginHint:
-      "Si sigue fallando: (1) Supabase → Authentication → URL Configuration → Site URL https://printcut3d.com y redirect https://printcut3d.com/** (2) Si “Confirmar correo” está activo, confirma el email o desactívalo para pruebas. (3) Usa el anon JWT legacy (eyJ…) en NEXT_PUBLIC_SUPABASE_ANON_KEY si usas claves sb_publishable."
+    loginEnvMissing:
+      "Supabase no está completo en este deploy: en Cloudflare Pages → Settings → Environment variables, añade NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y vuelve a desplegar.",
+    loginEnvPublishable:
+      "Este build usa clave publishable (sb_publishable…). Si ves “Invalid API key”, pon NEXT_PUBLIC_SUPABASE_ANON_KEY con el JWT anon legacy (empieza por eyJ…) en Supabase → Project Settings → API y redeploy.",
+    loginEnvOtherKey:
+      "La clave anon no parece un JWT estándar. Copia la clave anon pública en API, no el secreto service_role.",
+    loginErrInvalidKey:
+      "Clave de API de Supabase inválida. En Cloudflare Pages, define NEXT_PUBLIC_SUPABASE_ANON_KEY como el JWT anon público (eyJ…) en Supabase → Project Settings → API, guarda, redeploy e inténtalo de nuevo.",
+    loginErrBadCredentials: "Correo o contraseña incorrectos.",
+    loginErrConfirmEmail:
+      "Este correo aún no está confirmado. Abre el enlace de confirmación del correo (revisa spam), o en Supabase: Authentication → Users → tu usuario → confirmar manualmente. Solo pruebas: Authentication → Providers → Email → desactivar “Confirm email”.",
+    loginErrGeneric: "No se pudo iniciar sesión.",
+    loginHelpToggle: "¿Sigue fallando? Lista de comprobación",
+    loginHelpL1:
+      "Supabase → Authentication → URL Configuration: Site URL https://printcut3d.com y redirect https://printcut3d.com/**",
+    loginHelpL2: "Si “Confirmar correo” está activo, confirma el usuario o desactívalo temporalmente para pruebas.",
+    loginHelpL3: "Prefiere el JWT anon legacy (eyJ…) en NEXT_PUBLIC_SUPABASE_ANON_KEY si las claves publishable fallan.",
+    dashBrandLabel: "PrintCut3D",
+    dashHeading: "Panel",
+    dashTagline:
+      "Resumen, catálogo, producción, envíos, finanzas, reseñas, marketing y contenido — KPIs en el servidor; gráficos en vivo en el navegador.",
+    dashBackSite: "Volver al sitio",
+    dashNavOverview: "Resumen",
+    dashNavCatalog: "Catálogo",
+    dashNavPipeline: "Producción",
+    dashNavShipping: "Logística",
+    dashNavFinance: "Finanzas",
+    dashNavReviews: "Reseñas",
+    dashNavMarketing: "Marketing",
+    dashNavContent: "Contenido"
   }
 };
 
