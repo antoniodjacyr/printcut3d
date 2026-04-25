@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+export const runtime = "edge";
+
 type ProductDetail = {
   id: string;
   title: Record<string, string>;
