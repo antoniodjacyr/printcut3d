@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useCart } from "@/components/providers/cart-provider";
 
 export default function CartPage() {
@@ -14,6 +14,59 @@ export default function CartPage() {
   });
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.priceUsd * item.quantity, 0), [items]);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [shippingEstimate, setShippingEstimate] = useState<number | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await fetch("/api/customer/profile", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          profile?: {
+            name?: string;
+            email?: string;
+            phone?: string;
+            addressLine1?: string;
+            addressLine2?: string;
+            city?: string;
+            state?: string;
+            zip?: string;
+            country?: string;
+          };
+        };
+        const p = data.profile;
+        if (!p) return;
+        const setValue = (name: string, value: string | undefined) => {
+          const input = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`);
+          if (input && !input.value) {
+            input.value = value || "";
+          }
+        };
+        setValue("name", p.name);
+        setValue("email", p.email);
+        setValue("phone", p.phone);
+        setValue("addressLine1", p.addressLine1);
+        setValue("addressLine2", p.addressLine2);
+        setValue("city", p.city);
+        setValue("state", p.state);
+        setValue("zip", p.zip);
+        setValue("country", p.country);
+      } catch {
+        /* ignore */
+      } finally {
+        setProfileLoaded(true);
+      }
+    };
+    void loadProfile();
+  }, []);
+
+  const estimateShipping = (zip: string, itemCount: number) => {
+    const firstDigit = Number((zip || "").trim()[0] || "0");
+    const zoneExtra = Number.isFinite(firstDigit) ? Math.min(9, Math.max(0, firstDigit)) * 0.85 : 0;
+    const qtyExtra = Math.max(0, itemCount - 1) * 1.25;
+    return Number((6.5 + zoneExtra + qtyExtra).toFixed(2));
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -27,6 +80,12 @@ export default function CartPage() {
         name: (form.elements.namedItem("name") as HTMLInputElement).value.trim(),
         email: (form.elements.namedItem("email") as HTMLInputElement).value.trim(),
         phone: (form.elements.namedItem("phone") as HTMLInputElement).value.trim(),
+        addressLine1: (form.elements.namedItem("addressLine1") as HTMLInputElement).value.trim(),
+        addressLine2: (form.elements.namedItem("addressLine2") as HTMLInputElement).value.trim(),
+        city: (form.elements.namedItem("city") as HTMLInputElement).value.trim(),
+        state: (form.elements.namedItem("state") as HTMLInputElement).value.trim(),
+        zip: (form.elements.namedItem("zip") as HTMLInputElement).value.trim(),
+        country: (form.elements.namedItem("country") as HTMLInputElement).value.trim(),
         details: (form.elements.namedItem("details") as HTMLTextAreaElement).value.trim(),
         paymentPreference: (form.elements.namedItem("paymentPreference") as HTMLSelectElement).value
       },
@@ -39,6 +98,21 @@ export default function CartPage() {
 
     setState({ loading: true, error: null, success: null });
     try {
+      await fetch("/api/customer/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: payload.customer.name,
+          phone: payload.customer.phone,
+          addressLine1: payload.customer.addressLine1,
+          addressLine2: payload.customer.addressLine2,
+          city: payload.customer.city,
+          state: payload.customer.state,
+          zip: payload.customer.zip,
+          country: payload.customer.country
+        })
+      });
+
       const response = await fetch("/api/quote-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,9 +201,29 @@ export default function CartPage() {
         <form onSubmit={handleSubmit} className="tech-card space-y-4 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-white">Enviar pedido</h2>
           <p className="text-sm text-zinc-400">Subtotal estimado: ${subtotal.toFixed(2)}</p>
+          {!profileLoaded && <p className="text-xs text-zinc-500">Carregando seus dados cadastrados...</p>}
           <input name="name" required placeholder="Seu nome" className="w-full rounded-md border border-white/15 bg-black/30 p-2" />
           <input name="email" type="email" required placeholder="Seu e-mail" className="w-full rounded-md border border-white/15 bg-black/30 p-2" />
           <input name="phone" placeholder="Telefone / WhatsApp" className="w-full rounded-md border border-white/15 bg-black/30 p-2" />
+          <input name="addressLine1" required placeholder="Endereço" className="w-full rounded-md border border-white/15 bg-black/30 p-2" />
+          <input name="addressLine2" placeholder="Complemento" className="w-full rounded-md border border-white/15 bg-black/30 p-2" />
+          <div className="grid gap-2 sm:grid-cols-3">
+            <input name="city" required placeholder="Cidade" className="rounded-md border border-white/15 bg-black/30 p-2" />
+            <input name="state" required placeholder="Estado" className="rounded-md border border-white/15 bg-black/30 p-2" />
+            <input
+              name="zip"
+              required
+              placeholder="ZIP"
+              className="rounded-md border border-white/15 bg-black/30 p-2"
+              onChange={(e) => setShippingEstimate(estimateShipping(e.target.value, items.reduce((s, i) => s + i.quantity, 0)))}
+            />
+          </div>
+          <input name="country" defaultValue="USA" required placeholder="País" className="w-full rounded-md border border-white/15 bg-black/30 p-2" />
+          {shippingEstimate !== null && (
+            <p className="rounded-md border border-white/10 bg-black/20 p-2 text-xs text-zinc-300">
+              Simulação de frete para ZIP informado: <span className="text-neon">${shippingEstimate.toFixed(2)}</span>
+            </p>
+          )}
           <select name="paymentPreference" className="w-full rounded-md border border-white/15 bg-black/30 p-2">
             <option value="card">Cartão</option>
             <option value="pix">PIX</option>

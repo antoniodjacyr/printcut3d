@@ -15,6 +15,12 @@ type IncomingPayload = {
     name: string;
     email: string;
     phone?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
     details?: string;
     paymentPreference?: string;
   };
@@ -54,6 +60,12 @@ export async function POST(request: Request) {
     const shared = {
       customer_name: name,
       customer_phone: payload.customer.phone?.trim() || "",
+      address_line1: payload.customer.addressLine1?.trim() || "",
+      address_line2: payload.customer.addressLine2?.trim() || "",
+      city: payload.customer.city?.trim() || "",
+      state: payload.customer.state?.trim() || "",
+      zip: payload.customer.zip?.trim() || "",
+      country: payload.customer.country?.trim() || "",
       customer_details: payload.customer.details?.trim() || "",
       payment_preference: payload.customer.paymentPreference || "to_be_defined",
       order_status: "received",

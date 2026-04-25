@@ -73,6 +73,15 @@ export function LoginForm({
     const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     const confirmPassword = (form.elements.namedItem("confirmPassword") as HTMLInputElement | null)?.value ?? "";
+    const firstName = (form.elements.namedItem("firstName") as HTMLInputElement | null)?.value?.trim() ?? "";
+    const lastName = (form.elements.namedItem("lastName") as HTMLInputElement | null)?.value?.trim() ?? "";
+    const phone = (form.elements.namedItem("phone") as HTMLInputElement | null)?.value?.trim() ?? "";
+    const addressLine1 = (form.elements.namedItem("addressLine1") as HTMLInputElement | null)?.value?.trim() ?? "";
+    const addressLine2 = (form.elements.namedItem("addressLine2") as HTMLInputElement | null)?.value?.trim() ?? "";
+    const city = (form.elements.namedItem("city") as HTMLInputElement | null)?.value?.trim() ?? "";
+    const state = (form.elements.namedItem("state") as HTMLInputElement | null)?.value?.trim() ?? "";
+    const zip = (form.elements.namedItem("zip") as HTMLInputElement | null)?.value?.trim() ?? "";
+    const country = (form.elements.namedItem("country") as HTMLInputElement | null)?.value?.trim() ?? "";
 
     if (mode === "signup") {
       if (password.length < 6) {
@@ -85,7 +94,24 @@ export function LoginForm({
         setLoading(false);
         return;
       }
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            full_name: `${firstName} ${lastName}`.trim(),
+            phone,
+            address_line1: addressLine1,
+            address_line2: addressLine2,
+            city,
+            state,
+            zip,
+            country
+          }
+        }
+      });
       if (signUpError) {
         setError(signUpError.message || t.loginErrGeneric);
         setLoading(false);
@@ -194,16 +220,98 @@ export function LoginForm({
               />
             </label>
             {mode === "signup" && (
-              <label className="block text-sm font-medium text-zinc-300">
-                {t.loginSignupConfirmPassword || "Confirmar senha"}
-                <input
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
-                />
-              </label>
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-zinc-300">
+                    {t.loginSignupFirstName || "Nome"}
+                    <input
+                      name="firstName"
+                      required
+                      className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-zinc-300">
+                    {t.loginSignupLastName || "Sobrenome"}
+                    <input
+                      name="lastName"
+                      required
+                      className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                    />
+                  </label>
+                </div>
+
+                <label className="block text-sm font-medium text-zinc-300">
+                  {t.loginSignupPhone || "Telefone"}
+                  <input
+                    name="phone"
+                    className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                  />
+                </label>
+
+                <label className="block text-sm font-medium text-zinc-300">
+                  {t.loginSignupAddress1 || "Endereço"}
+                  <input
+                    name="addressLine1"
+                    required
+                    className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                  />
+                </label>
+                <label className="block text-sm font-medium text-zinc-300">
+                  {t.loginSignupAddress2 || "Complemento"}
+                  <input
+                    name="addressLine2"
+                    className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                  />
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <label className="block text-sm font-medium text-zinc-300">
+                    {t.loginSignupCity || "Cidade"}
+                    <input
+                      name="city"
+                      required
+                      className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-zinc-300">
+                    {t.loginSignupState || "Estado"}
+                    <input
+                      name="state"
+                      required
+                      className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-zinc-300">
+                    ZIP
+                    <input
+                      name="zip"
+                      required
+                      className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                    />
+                  </label>
+                </div>
+
+                <label className="block text-sm font-medium text-zinc-300">
+                  {t.loginSignupCountry || "País"}
+                  <input
+                    name="country"
+                    defaultValue="USA"
+                    required
+                    className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                  />
+                </label>
+
+                <label className="block text-sm font-medium text-zinc-300">
+                  {t.loginSignupConfirmPassword || "Confirmar senha"}
+                  <input
+                    name="confirmPassword"
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                  />
+                </label>
+              </>
             )}
 
             {error && (
@@ -225,17 +333,6 @@ export function LoginForm({
               {loading ? t.loginLoading : mode === "signin" ? t.loginSubmit : t.loginSignupSubmit || "Criar conta"}
             </button>
           </form>
-
-          <details className="mt-6 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-400">
-            <summary className="cursor-pointer select-none font-medium text-zinc-300 hover:text-white">
-              {t.loginHelpToggle}
-            </summary>
-            <ol className="mt-3 list-decimal space-y-2 pl-4 text-xs leading-relaxed text-zinc-400">
-              <li>{t.loginHelpL1}</li>
-              <li>{t.loginHelpL2}</li>
-              <li>{t.loginHelpL3}</li>
-            </ol>
-          </details>
 
           <p className="mt-6 text-center text-sm text-zinc-500">
             <Link href="/" className="text-neon transition hover:text-white hover:underline">
