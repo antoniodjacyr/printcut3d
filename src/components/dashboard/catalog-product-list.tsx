@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type DashboardProduct = {
@@ -77,6 +78,7 @@ export function CatalogProductList({ refreshToken }: { refreshToken: number }) {
                 <th className="pb-2 pr-4">Preço</th>
                 <th className="pb-2 pr-4">Estoque</th>
                 <th className="pb-2 pr-4">Variante</th>
+                <th className="pb-2 pr-4">Editar</th>
                 <th className="pb-2">Online</th>
               </tr>
             </thead>
@@ -92,6 +94,14 @@ export function CatalogProductList({ refreshToken }: { refreshToken: number }) {
                   <td className="py-3 pr-4">${Number(item.priceUsd).toFixed(2)}</td>
                   <td className="py-3 pr-4">{item.stockQty || 0}</td>
                   <td className="py-3 pr-4">{item.variantLabel || "-"}</td>
+                  <td className="py-3 pr-4">
+                    <Link
+                      href={`/dashboard/catalog/${item.id}`}
+                      className="rounded-md border border-neon/40 px-3 py-1 text-xs text-neon hover:bg-neon/10"
+                    >
+                      Editar
+                    </Link>
+                  </td>
                   <td className="py-3">
                     <button
                       type="button"
