@@ -64,6 +64,9 @@ export default function MinhaContaPage() {
     zip: "",
     country: "USA"
   });
+  const [locationLocked, setLocationLocked] = useState(false);
+  const [zipLookupLoading, setZipLookupLoading] = useState(false);
+  const [zipLookupMessage, setZipLookupMessage] = useState<string | null>(null);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [activeTab, setActiveTab] = useState<"profile" | "orders">("profile");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -91,6 +94,7 @@ export default function MinhaContaPage() {
           zip: data.profile?.zip || "",
           country: data.profile?.country || "USA"
         });
+        setLocationLocked(Boolean(data.profile?.city && data.profile?.state));
         setOrders(data.orders ?? []);
         setSelectedOrderId((data.orders ?? [])[0]?.id ?? null);
       } catch (err) {
@@ -154,6 +158,55 @@ export default function MinhaContaPage() {
       setError(err instanceof Error ? err.message : "Erro ao atualizar foto.");
     } finally {
       setSavingAvatar(false);
+    }
+  };
+
+  const resolveCountryCode = (country: string) => {
+    const value = country.trim().toLowerCase();
+    if (!value) return "us";
+    if (value === "usa" || value === "us" || value.includes("united states") || value.includes("estados unidos")) {
+      return "us";
+    }
+    if (value === "canada" || value === "ca") return "ca";
+    if (value === "mexico" || value === "mx" || value === "méxico") return "mx";
+    if (value === "brazil" || value === "brasil" || value === "br") return "br";
+    return value.slice(0, 2);
+  };
+
+  const fillCityStateByZip = async (zip: string, country: string) => {
+    const cleanZip = zip.trim();
+    if (!cleanZip) return;
+    setZipLookupLoading(true);
+    setZipLookupMessage(null);
+    setLocationLocked(false);
+    try {
+      const countryCode = resolveCountryCode(country);
+      const response = await fetch(
+        `https://api.zippopotam.us/${countryCode}/${encodeURIComponent(cleanZip)}`
+      );
+      if (!response.ok) {
+        setZipLookupMessage("Nao foi possivel localizar cidade/estado com esse ZIP.");
+        return;
+      }
+      const data = (await response.json()) as {
+        places?: Array<{ "place name"?: string; state?: string; "state abbreviation"?: string }>;
+      };
+      const first = data.places?.[0];
+      if (!first) {
+        setZipLookupMessage("Nao foi possivel localizar cidade/estado com esse ZIP.");
+        return;
+      }
+      const nextCity = first["place name"]?.trim() || "";
+      const nextState = first["state abbreviation"]?.trim() || first.state?.trim() || "";
+      setForm((prev) => ({ ...prev, city: nextCity, state: nextState }));
+      if (nextCity && nextState) {
+        setLocationLocked(true);
+        setZipLookupMessage("Cidade e estado preenchidos automaticamente e bloqueados.");
+      }
+    } catch {
+      setZipLookupMessage("Nao foi possivel consultar o ZIP neste momento.");
+    } finally {
+      setZipLookupLoading(false);
     }
   };
 
@@ -251,27 +304,41 @@ export default function MinhaContaPage() {
                 value={form.city}
                 onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
                 placeholder="Cidade"
+                readOnly={locationLocked}
                 className="rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
               />
               <input
                 value={form.state}
                 onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))}
                 placeholder="Estado"
+                readOnly={locationLocked}
                 className="rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
               />
               <input
                 value={form.zip}
-                onChange={(e) => setForm((prev) => ({ ...prev, zip: e.target.value }))}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, zip: e.target.value }));
+                  setLocationLocked(false);
+                }}
+                onBlur={(e) => void fillCityStateByZip(e.target.value, form.country)}
                 placeholder="ZIP"
                 className="rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
               />
               <input
                 value={form.country}
-                onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, country: e.target.value }));
+                  setLocationLocked(false);
+                }}
                 placeholder="País"
                 className="rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
               />
             </div>
+            {(zipLookupLoading || zipLookupMessage) && (
+              <p className="mt-2 text-xs text-zinc-500">
+                {zipLookupLoading ? "Buscando cidade e estado..." : zipLookupMessage}
+              </p>
+            )}
           </div>
           <div className="md:col-span-3 flex justify-end">
             <button

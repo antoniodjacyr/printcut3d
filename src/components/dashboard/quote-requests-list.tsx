@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type RequestRow = {
   id: string;
@@ -20,6 +21,118 @@ type RequestRow = {
 };
 
 export function QuoteRequestsList({ refreshToken }: { refreshToken?: number }) {
+  const { locale } = useLocale();
+  const copy = useMemo(
+    () =>
+      locale === "pt"
+        ? {
+            title: "Pedidos recebidos (carrinho)",
+            subtitle:
+              "Cliente adiciona ao carrinho, envia as informações, e você responde com o valor total + forma de pagamento.",
+            loading: "Carregando pedidos...",
+            empty: "Sem pedidos por enquanto.",
+            customer: "Cliente",
+            phone: "Tel/WhatsApp",
+            status: "Status",
+            subtotal: "Subtotal est.",
+            payment: "Pagamento",
+            paymentStatus: "Status",
+            updatedAt: "Atualizado",
+            details: "Detalhes",
+            editorTitle: "Atualização automática para o cliente",
+            save: "Salvar",
+            saving: "Salvando...",
+            messageLabel: "Mensagem automática",
+            statusLabels: {
+              received: "Recebido",
+              pricing: "Orçamento enviado",
+              awaiting_payment: "Aguardando pagamento",
+              paid: "Pago",
+              in_production: "Em produção",
+              ready_to_ship: "Pronto para envio",
+              shipped: "Enviado",
+              delivered: "Entregue"
+            } as Record<string, string>,
+            paymentLabels: {
+              pending: "Pagamento pendente",
+              processing: "Processando pagamento",
+              paid: "Pagamento confirmado",
+              refunded: "Pagamento reembolsado"
+            } as Record<string, string>
+          }
+        : locale === "es"
+          ? {
+              title: "Pedidos recibidos (carrito)",
+              subtitle:
+                "El cliente agrega al carrito, envía la información y tú respondes con valor final + forma de pago.",
+              loading: "Cargando pedidos...",
+              empty: "Sin pedidos por ahora.",
+              customer: "Cliente",
+              phone: "Tel/WhatsApp",
+              status: "Estado",
+              subtotal: "Subtotal est.",
+              payment: "Pago",
+              paymentStatus: "Estado",
+              updatedAt: "Actualizado",
+              details: "Detalles",
+              editorTitle: "Actualización automática para el cliente",
+              save: "Guardar",
+              saving: "Guardando...",
+              messageLabel: "Mensaje automático",
+              statusLabels: {
+                received: "Recibido",
+                pricing: "Presupuesto enviado",
+                awaiting_payment: "Esperando pago",
+                paid: "Pagado",
+                in_production: "En producción",
+                ready_to_ship: "Listo para envío",
+                shipped: "Enviado",
+                delivered: "Entregado"
+              } as Record<string, string>,
+              paymentLabels: {
+                pending: "Pago pendiente",
+                processing: "Procesando pago",
+                paid: "Pago confirmado",
+                refunded: "Pago reembolsado"
+              } as Record<string, string>
+            }
+          : {
+              title: "Received orders (cart)",
+              subtitle:
+                "Customer adds to cart, submits details, and you reply with final amount + payment method.",
+              loading: "Loading orders...",
+              empty: "No orders yet.",
+              customer: "Customer",
+              phone: "Phone/WhatsApp",
+              status: "Status",
+              subtotal: "Estimated subtotal",
+              payment: "Payment",
+              paymentStatus: "Status",
+              updatedAt: "Updated",
+              details: "Details",
+              editorTitle: "Automatic customer update",
+              save: "Save",
+              saving: "Saving...",
+              messageLabel: "Automatic message",
+              statusLabels: {
+                received: "Received",
+                pricing: "Quote sent",
+                awaiting_payment: "Awaiting payment",
+                paid: "Paid",
+                in_production: "In production",
+                ready_to_ship: "Ready to ship",
+                shipped: "Shipped",
+                delivered: "Delivered"
+              } as Record<string, string>,
+              paymentLabels: {
+                pending: "Payment pending",
+                processing: "Payment processing",
+                paid: "Payment confirmed",
+                refunded: "Payment refunded"
+              } as Record<string, string>
+            },
+    [locale]
+  );
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,14 +189,12 @@ export function QuoteRequestsList({ refreshToken }: { refreshToken?: number }) {
 
   return (
     <section className="tech-card rounded-2xl p-6">
-      <h3 className="text-lg font-semibold text-white">Pedidos recebidos (carrinho)</h3>
-      <p className="mt-1 text-sm text-zinc-400">
-        Cliente adiciona ao carrinho, envia as informações, e você responde com o valor total + forma de pagamento.
-      </p>
+      <h3 className="text-lg font-semibold text-white">{copy.title}</h3>
+      <p className="mt-1 text-sm text-zinc-400">{copy.subtitle}</p>
 
-      {loading && <p className="mt-4 text-sm text-zinc-400">Carregando pedidos…</p>}
+      {loading && <p className="mt-4 text-sm text-zinc-400">{copy.loading}</p>}
       {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
-      {!loading && !error && rows.length === 0 && <p className="mt-4 text-sm text-zinc-500">Sem pedidos por enquanto.</p>}
+      {!loading && !error && rows.length === 0 && <p className="mt-4 text-sm text-zinc-500">{copy.empty}</p>}
 
       {!loading && !error && rows.length > 0 && (
         <div className="mt-4 space-y-4">
@@ -91,23 +202,23 @@ export function QuoteRequestsList({ refreshToken }: { refreshToken?: number }) {
             <article key={row.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-medium text-zinc-100">{row.customerName || "Cliente"}</p>
+                  <p className="font-medium text-zinc-100">{row.customerName || copy.customer}</p>
                   <p className="text-xs text-zinc-400">{row.email}</p>
-                  {row.customerPhone && <p className="text-xs text-zinc-500">Tel/WhatsApp: {row.customerPhone}</p>}
+                  {row.customerPhone && <p className="text-xs text-zinc-500">{copy.phone}: {row.customerPhone}</p>}
                   <p className="mt-1 text-xs text-emerald-300">
-                    Status: <span className="font-semibold">{row.orderStatus}</span>
+                    {copy.status}: <span className="font-semibold">{copy.statusLabels[row.orderStatus] || row.orderStatus}</span>
                   </p>
                 </div>
                 <div className="text-right text-xs text-zinc-400">
                   <p>{new Date(row.createdAt).toLocaleString("pt-BR")}</p>
-                  <p className="text-neon">Subtotal est.: ${row.estimatedSubtotalUsd.toFixed(2)}</p>
+                  <p className="text-neon">{copy.subtotal}: ${row.estimatedSubtotalUsd.toFixed(2)}</p>
                   <p>
-                    Pagamento: {row.paymentPreference} · Status:{" "}
+                    {copy.payment}: {row.paymentPreference} · {copy.paymentStatus}:{" "}
                     <span className={row.paymentStatus === "paid" ? "text-emerald-300" : "text-amber-300"}>
-                      {row.paymentStatus}
+                      {copy.paymentLabels[row.paymentStatus] || row.paymentStatus}
                     </span>
                   </p>
-                  <p>Atualizado: {new Date(row.statusUpdatedAt).toLocaleString("pt-BR")}</p>
+                  <p>{copy.updatedAt}: {new Date(row.statusUpdatedAt).toLocaleString("pt-BR")}</p>
                 </div>
               </div>
               {row.customerDetails && (
@@ -124,11 +235,11 @@ export function QuoteRequestsList({ refreshToken }: { refreshToken?: number }) {
                         {item.quantity} × ${item.unitPriceUsd.toFixed(2)}
                       </span>
                     </div>
-                    {item.notes && <p className="mt-1 text-xs text-zinc-500">Detalhes: {item.notes}</p>}
+                    {item.notes && <p className="mt-1 text-xs text-zinc-500">{copy.details}: {item.notes}</p>}
                   </li>
                 ))}
               </ul>
-              <StatusEditor row={row} pending={pendingId === row.id} onSave={saveStatus} />
+              <StatusEditor row={row} pending={pendingId === row.id} onSave={saveStatus} copy={copy} />
             </article>
           ))}
         </div>
@@ -140,48 +251,66 @@ export function QuoteRequestsList({ refreshToken }: { refreshToken?: number }) {
 function StatusEditor({
   row,
   pending,
-  onSave
+  onSave,
+  copy
 }: {
   row: RequestRow;
   pending: boolean;
   onSave: (row: RequestRow, orderStatus: string, paymentStatus: string, sellerMessage: string) => Promise<void>;
+  copy: {
+    editorTitle: string;
+    save: string;
+    saving: string;
+    messageLabel: string;
+    statusLabels: Record<string, string>;
+    paymentLabels: Record<string, string>;
+  };
 }) {
+  const buildAutoMessage = (orderStatus: string, paymentStatus: string) => {
+    const statusLabel = copy.statusLabels[orderStatus] || orderStatus;
+    const paymentLabel = copy.paymentLabels[paymentStatus] || paymentStatus;
+    return `${statusLabel}. ${paymentLabel}.`;
+  };
   const [status, setStatus] = useState(row.orderStatus);
   const [paymentStatus, setPaymentStatus] = useState(row.paymentStatus || "pending");
-  const [message, setMessage] = useState(row.sellerMessage || "");
+  const [message, setMessage] = useState(row.sellerMessage || buildAutoMessage(row.orderStatus, row.paymentStatus));
+
+  useEffect(() => {
+    setMessage(buildAutoMessage(status, paymentStatus));
+  }, [status, paymentStatus]);
 
   return (
     <div className="mt-4 rounded-lg border border-white/10 bg-black/30 p-3">
-      <p className="text-xs text-zinc-400">Atualizar andamento para o cliente</p>
+      <p className="text-xs text-zinc-400">{copy.editorTitle}</p>
       <div className="mt-2 grid gap-2 md:grid-cols-[180px_160px_1fr_auto]">
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           className="rounded-md border border-white/15 bg-black/40 p-2 text-sm text-zinc-200"
         >
-          <option value="received">Recebido</option>
-          <option value="pricing">Orçamento enviado</option>
-          <option value="awaiting_payment">Aguardando pagamento</option>
-          <option value="paid">Pago</option>
-          <option value="in_production">Em produção</option>
-          <option value="ready_to_ship">Pronto para envio</option>
-          <option value="shipped">Enviado</option>
-          <option value="delivered">Entregue</option>
+          <option value="received">{copy.statusLabels.received}</option>
+          <option value="pricing">{copy.statusLabels.pricing}</option>
+          <option value="awaiting_payment">{copy.statusLabels.awaiting_payment}</option>
+          <option value="paid">{copy.statusLabels.paid}</option>
+          <option value="in_production">{copy.statusLabels.in_production}</option>
+          <option value="ready_to_ship">{copy.statusLabels.ready_to_ship}</option>
+          <option value="shipped">{copy.statusLabels.shipped}</option>
+          <option value="delivered">{copy.statusLabels.delivered}</option>
         </select>
         <select
           value={paymentStatus}
           onChange={(e) => setPaymentStatus(e.target.value)}
           className="rounded-md border border-white/15 bg-black/40 p-2 text-sm text-zinc-200"
         >
-          <option value="pending">Pagamento pendente</option>
-          <option value="processing">Processando pagamento</option>
-          <option value="paid">Pagamento confirmado</option>
-          <option value="refunded">Pagamento reembolsado</option>
+          <option value="pending">{copy.paymentLabels.pending}</option>
+          <option value="processing">{copy.paymentLabels.processing}</option>
+          <option value="paid">{copy.paymentLabels.paid}</option>
+          <option value="refunded">{copy.paymentLabels.refunded}</option>
         </select>
         <input
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Mensagem para o cliente..."
+          readOnly
+          aria-label={copy.messageLabel}
           className="rounded-md border border-white/15 bg-black/40 p-2 text-sm text-zinc-200"
         />
         <button
@@ -190,7 +319,7 @@ function StatusEditor({
           onClick={() => void onSave(row, status, paymentStatus, message)}
           className="rounded-md bg-neon px-3 py-2 text-sm font-semibold text-black disabled:opacity-60"
         >
-          {pending ? "Salvando..." : "Salvar"}
+          {pending ? copy.saving : copy.save}
         </button>
       </div>
     </div>
