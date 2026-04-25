@@ -105,6 +105,20 @@ create table if not exists public.cart_items (
   customization_text text
 );
 
+-- Admin audit logs
+create table if not exists public.admin_audit_logs (
+  id uuid primary key default uuid_generate_v4(),
+  actor_user_id uuid not null,
+  actor_email text not null,
+  target_user_id uuid not null,
+  target_email text not null,
+  action text not null,
+  details jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs(created_at desc);
+
 -- Updated_at helper trigger
 create or replace function public.handle_updated_at()
 returns trigger as $$

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { UsersAdminPanel } from "@/components/dashboard/users-admin-panel";
 import { sanitizeSupabaseUrl } from "@/lib/supabase/env-sanitize";
 
 export const runtime = "edge";
@@ -74,6 +75,8 @@ export default function DashboardUsersPage() {
           <li>Salve e teste um novo cadastro para validar.</li>
         </ol>
       </section>
+
+      <UsersAdminPanel />
     </div>
   );
 }

@@ -77,6 +77,7 @@ export function LoginForm({
   const [countryCode, setCountryCode] = useState("US");
   const [cityValue, setCityValue] = useState("");
   const [stateValue, setStateValue] = useState("");
+  const [locationLocked, setLocationLocked] = useState(false);
   const [zipLookupLoading, setZipLookupLoading] = useState(false);
   const [zipLookupMessage, setZipLookupMessage] = useState<string | null>(null);
 
@@ -94,6 +95,7 @@ export function LoginForm({
     if (!cleanZip) return;
     setZipLookupLoading(true);
     setZipLookupMessage(null);
+    setLocationLocked(false);
     try {
       const response = await fetch(
         `https://api.zippopotam.us/${selectedCountryCode.toLowerCase()}/${encodeURIComponent(cleanZip)}`
@@ -117,6 +119,7 @@ export function LoginForm({
       const nextState = first["state abbreviation"]?.trim() || first.state?.trim() || "";
       if (nextCity) setCityValue(nextCity);
       if (nextState) setStateValue(nextState);
+      if (nextCity && nextState) setLocationLocked(true);
       setZipLookupMessage(
         locale === "pt"
           ? "Cidade e estado preenchidos automaticamente."
@@ -356,7 +359,10 @@ export function LoginForm({
                     <select
                       name="country"
                       value={countryCode}
-                      onChange={(event) => setCountryCode(event.target.value)}
+                      onChange={(event) => {
+                        setCountryCode(event.target.value);
+                        setLocationLocked(false);
+                      }}
                       required
                       className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
                     >
@@ -372,6 +378,9 @@ export function LoginForm({
                     <input
                       name="zip"
                       required
+                      onChange={() => {
+                        setLocationLocked(false);
+                      }}
                       onBlur={(event) => void fillCityAndStateByZip(event.target.value, countryCode)}
                       className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
                     />
@@ -397,6 +406,7 @@ export function LoginForm({
                       required
                       value={cityValue}
                       onChange={(event) => setCityValue(event.target.value)}
+                      readOnly={locationLocked}
                       className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
                     />
                   </label>
@@ -406,11 +416,21 @@ export function LoginForm({
                       name="state"
                       value={stateValue}
                       onChange={(event) => setStateValue(event.target.value)}
+                      readOnly={locationLocked}
                       required
                       className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
                     />
                   </label>
                 </div>
+                {locationLocked && (
+                  <p className="text-xs text-zinc-500">
+                    {locale === "pt"
+                      ? "Cidade e estado bloqueados com base no ZIP informado."
+                      : locale === "es"
+                        ? "Ciudad y estado bloqueados según el código postal."
+                        : "City and state are locked based on ZIP lookup."}
+                  </p>
+                )}
 
                 <label className="block text-sm font-medium text-zinc-300">
                   {t.loginSignupConfirmPassword || "Confirmar senha"}
