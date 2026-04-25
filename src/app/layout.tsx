@@ -3,6 +3,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import { CartProvider } from "@/components/providers/cart-provider";
+import { SessionTimeoutGuard } from "@/components/auth/session-timeout-guard";
 
 export const metadata: Metadata = {
   title: "Print & Cut 3D",
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <LocaleProvider>
           <CartProvider>
             <Header />
+            <SessionTimeoutGuard />
             <main>{children}</main>
           </CartProvider>
         </LocaleProvider>
