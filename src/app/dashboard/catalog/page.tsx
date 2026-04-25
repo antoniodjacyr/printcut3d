@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import { CatalogProductForm } from "@/components/dashboard/catalog-product-form";
 import { CatalogProductList } from "@/components/dashboard/catalog-product-list";
-import { QuoteRequestsList } from "@/components/dashboard/quote-requests-list";
 
 export default function DashboardCatalogPage() {
   const [refreshToken, setRefreshToken] = useState(0);
@@ -62,7 +61,6 @@ export default function DashboardCatalogPage() {
       </div>
       <CatalogProductList refreshToken={refreshToken} />
       <CatalogProductForm onProductsCreated={() => setRefreshToken((v) => v + 1)} />
-      <QuoteRequestsList refreshToken={refreshToken} />
     </div>
   );
 }

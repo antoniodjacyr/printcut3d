@@ -9,6 +9,7 @@ import { dictionary } from "@/lib/i18n";
 const navItems = [
   { href: "/dashboard", labelKey: "dashNavOverview" },
   { href: "/dashboard/catalog", labelKey: "dashNavCatalog" },
+  { href: "/dashboard/orders", labelKey: "dashNavOrders" },
   { href: "/dashboard/pipeline", labelKey: "dashNavPipeline" },
   { href: "/dashboard/shipping", labelKey: "dashNavShipping" },
   { href: "/dashboard/finance", labelKey: "dashNavFinance" },

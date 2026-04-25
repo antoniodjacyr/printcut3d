@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireDashboardUser } from "@/lib/server/dashboard-auth";
+import { requireAuthenticatedUser } from "@/lib/server/dashboard-auth";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
 export const runtime = "edge";
@@ -25,7 +25,7 @@ const parseMeta = (value: string | null): ParsedMeta => {
 };
 
 export async function GET() {
-  const auth = await requireDashboardUser();
+  const auth = await requireAuthenticatedUser();
   if ("response" in auth) {
     return auth.response;
   }

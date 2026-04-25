@@ -15,6 +15,7 @@ export function Header() {
   const { locale, setLocale } = useLocale();
   const t = useMemo(() => dictionary[locale], [locale]);
   const [user, setUser] = useState<User | null>(null);
+  const [canAccessAdmin, setCanAccessAdmin] = useState(false);
   const { itemCount } = useCart();
   const pathname = usePathname();
   const inAdminArea = pathname?.startsWith("/dashboard") ?? false;
@@ -24,14 +25,30 @@ export function Header() {
     if (!supabase) return;
 
     let cancelled = false;
+    const refreshAccess = async (nextUser: User | null) => {
+      if (!nextUser) {
+        if (!cancelled) setCanAccessAdmin(false);
+        return;
+      }
+      try {
+        const response = await fetch("/api/auth/access", { cache: "no-store" });
+        const data = (await response.json()) as { isAdmin?: boolean };
+        if (!cancelled) setCanAccessAdmin(data.isAdmin === true);
+      } catch {
+        if (!cancelled) setCanAccessAdmin(false);
+      }
+    };
     void supabase.auth.getUser().then((result: { data: { user: User | null } }) => {
       if (!cancelled) setUser(result.data.user ?? null);
+      void refreshAccess(result.data.user ?? null);
     });
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      setUser(session?.user ?? null);
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      void refreshAccess(nextUser);
     });
 
     return () => {
@@ -85,9 +102,11 @@ export function Header() {
                   {t.navMyAccount || "My account"}
                 </Link>
               )}
-              <Link href="/dashboard" className="hover:text-neon">
-                {t.navAdmin}
-              </Link>
+              {canAccessAdmin && (
+                <Link href="/dashboard" className="hover:text-neon">
+                  {t.navAdmin}
+                </Link>
+              )}
               <button type="button" onClick={() => void signOut()} className="hover:text-neon">
                 {t.navLogout}
               </button>

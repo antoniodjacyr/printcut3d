@@ -43,7 +43,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (request.nextUrl.pathname === "/login" && user) {
-    const next = request.nextUrl.searchParams.get("next") || "/dashboard";
+    const next = request.nextUrl.searchParams.get("next") || "/minha-conta";
     return NextResponse.redirect(new URL(next, request.url));
   }
 

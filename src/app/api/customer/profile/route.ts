@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireDashboardUser } from "@/lib/server/dashboard-auth";
+import { requireAuthenticatedUser } from "@/lib/server/dashboard-auth";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
 export const runtime = "edge";
 
 export async function GET() {
-  const auth = await requireDashboardUser();
+  const auth = await requireAuthenticatedUser();
   if ("response" in auth) return auth.response;
   const meta = (auth.user.user_metadata || {}) as Record<string, unknown>;
   return NextResponse.json({
@@ -24,7 +24,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const auth = await requireDashboardUser();
+  const auth = await requireAuthenticatedUser();
   if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as Record<string, string>;

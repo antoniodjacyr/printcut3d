@@ -5,6 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import type { SupabaseCookieToSet } from "@/lib/supabase/cookie-types";
 import { sanitizeSupabaseKey, sanitizeSupabaseUrl } from "@/lib/supabase/env-sanitize";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
 async function createAuthClient():
   Promise<{ client: SupabaseClient; errorResponse?: NextResponse }> {
@@ -40,6 +41,18 @@ async function createAuthClient():
 }
 
 export async function requireDashboardUser(): Promise<{ user: User } | { response: NextResponse }> {
+  const auth = await requireAuthenticatedUser();
+  if ("response" in auth) {
+    return auth;
+  }
+  const isAdmin = await isUserAdmin(auth.user);
+  if (!isAdmin) {
+    return { response: NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 }) };
+  }
+  return { user: auth.user };
+}
+
+export async function requireAuthenticatedUser(): Promise<{ user: User } | { response: NextResponse }> {
   const { client, errorResponse } = await createAuthClient();
   if (errorResponse) {
     return { response: errorResponse };
@@ -53,6 +66,39 @@ export async function requireDashboardUser(): Promise<{ user: User } | { respons
   }
 
   return { user };
+}
+
+function hasAdminMetadata(user: User): boolean {
+  const meta = (user.user_metadata || {}) as Record<string, unknown>;
+  const appMeta = (user.app_metadata || {}) as Record<string, unknown>;
+  return (
+    meta.is_admin === true ||
+    meta.isAdmin === true ||
+    meta.role === "admin" ||
+    appMeta.role === "admin" ||
+    appMeta.is_admin === true
+  );
+}
+
+export async function isUserAdmin(user: User): Promise<boolean> {
+  if (hasAdminMetadata(user)) {
+    return true;
+  }
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("stores")
+      .select("id")
+      .eq("owner_user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      return false;
+    }
+    return Boolean(data?.id);
+  } catch {
+    return false;
+  }
 }
 
 export async function getAuthenticatedUserOrNull(): Promise<{ user: User | null } | { response: NextResponse }> {
