@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type SubmitState = {
   loading: boolean;
@@ -14,6 +15,112 @@ type SubmitState = {
 const mockStoreId = "00000000-0000-0000-0000-000000000001";
 
 export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: () => void }) {
+  const { locale } = useLocale();
+  const copy =
+    locale === "pt"
+      ? {
+          needPhoto: "Adicione pelo menos uma foto para análise.",
+          analyzeFail: "Falha na análise da imagem.",
+          aiApplied: "Sugestões aplicadas ao título e tags (revise antes de publicar).",
+          analyzeError: "Erro na análise.",
+          invalidServer: "Resposta inválida do servidor.",
+          saveFail: "Falha ao salvar produto.",
+          created: "Produto(s) criado(s)",
+          refId: "ID referência",
+          unexpected: "Erro inesperado.",
+          originalLanguage: "Idioma original da descrição",
+          price: "Preço (USD)",
+          title: "Título",
+          seoTags: "Tags SEO (EUA)",
+          seoPlaceholder: "petg, laser cut, usa, ...",
+          seoHint: "Separadas por vírgula; a IA pode preencher a partir da primeira foto.",
+          description: "Descrição",
+          grammarHint: "Gramática nativa + EN/PT/ES são gerados no servidor ao salvar (OpenAI).",
+          stock: "Estoque (unid.)",
+          variant: "Variante (rótulo)",
+          variantPlaceholder: "Ex.: cor azul / tamanho M",
+          batchCount: "Quantidade para criar de uma vez",
+          online: "Disponível online (aparece para comprador)",
+          weight: "Peso (lbs)",
+          width: "Largura (in)",
+          height: "Altura (in)",
+          depth: "Profundidade (in)",
+          customization: "Permite personalização",
+          dragDrop: "Arraste e solte fotos aqui",
+          analyze: "IA: sugerir título e tags (GPT-4o)",
+          analyzing: "Analisando...",
+          saving: "Salvando...",
+          save: "Salvar produto"
+        }
+      : locale === "es"
+        ? {
+            needPhoto: "Agrega al menos una foto para análisis.",
+            analyzeFail: "Falló el análisis de imagen.",
+            aiApplied: "Sugerencias aplicadas a título y etiquetas (revísalas antes de publicar).",
+            analyzeError: "Error de análisis.",
+            invalidServer: "Respuesta inválida del servidor.",
+            saveFail: "No se pudo guardar el producto.",
+            created: "Producto(s) creado(s)",
+            refId: "ID de referencia",
+            unexpected: "Error inesperado.",
+            originalLanguage: "Idioma original de la descripción",
+            price: "Precio (USD)",
+            title: "Título",
+            seoTags: "Etiquetas SEO (EE. UU.)",
+            seoPlaceholder: "petg, laser cut, usa, ...",
+            seoHint: "Separadas por coma; la IA puede completar desde la primera foto.",
+            description: "Descripción",
+            grammarHint: "Gramática nativa + EN/PT/ES se genera al guardar (OpenAI).",
+            stock: "Stock (unid.)",
+            variant: "Variante (etiqueta)",
+            variantPlaceholder: "Ej.: color azul / talla M",
+            batchCount: "Cantidad para crear de una vez",
+            online: "Disponible online (aparece para comprador)",
+            weight: "Peso (lbs)",
+            width: "Ancho (in)",
+            height: "Alto (in)",
+            depth: "Profundidad (in)",
+            customization: "Permite personalización",
+            dragDrop: "Arrastra y suelta fotos aquí",
+            analyze: "IA: sugerir título y etiquetas (GPT-4o)",
+            analyzing: "Analizando...",
+            saving: "Guardando...",
+            save: "Guardar producto"
+          }
+        : {
+            needPhoto: "Add at least one photo for analysis.",
+            analyzeFail: "Image analysis failed.",
+            aiApplied: "Suggestions applied to title and tags (review before publishing).",
+            analyzeError: "Analysis error.",
+            invalidServer: "Invalid server response.",
+            saveFail: "Failed to save product.",
+            created: "Product(s) created",
+            refId: "Reference ID",
+            unexpected: "Unexpected error.",
+            originalLanguage: "Original description language",
+            price: "Price (USD)",
+            title: "Title",
+            seoTags: "SEO tags (US)",
+            seoPlaceholder: "petg, laser cut, usa, ...",
+            seoHint: "Comma-separated; AI can fill from first photo.",
+            description: "Description",
+            grammarHint: "Native grammar + EN/PT/ES generated on save (OpenAI).",
+            stock: "Stock (units)",
+            variant: "Variant (label)",
+            variantPlaceholder: "Ex.: blue color / size M",
+            batchCount: "Quantity to create in batch",
+            online: "Available online (shown to buyer)",
+            weight: "Weight (lbs)",
+            width: "Width (in)",
+            height: "Height (in)",
+            depth: "Depth (in)",
+            customization: "Allows customization",
+            dragDrop: "Drag and drop photos here",
+            analyze: "AI: suggest title and tags (GPT-4o)",
+            analyzing: "Analyzing...",
+            saving: "Saving...",
+            save: "Save product"
+          };
   const [images, setImages] = useState<File[]>([]);
   const [dragging, setDragging] = useState(false);
   const [state, setState] = useState<SubmitState>({
@@ -49,7 +156,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
   const analyzeImage = async () => {
     const first = images[0];
     if (!first) {
-      setState((s) => ({ ...s, error: "Adicione pelo menos uma foto para análise.", aiNote: null }));
+      setState((s) => ({ ...s, error: copy.needPhoto, aiNote: null }));
       return;
     }
     setState((s) => ({ ...s, analyzeLoading: true, error: null, aiNote: null }));
@@ -64,7 +171,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
         notes?: string;
       };
       if (!response.ok) {
-        throw new Error(data.error || "Falha na análise da imagem.");
+        throw new Error(data.error || copy.analyzeFail);
       }
       if (titleRef.current && data.suggestedTitle) {
         titleRef.current.value = data.suggestedTitle;
@@ -75,13 +182,13 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
       setState((s) => ({
         ...s,
         analyzeLoading: false,
-        aiNote: data.notes ?? "Sugestões aplicadas ao título e tags (revise antes de publicar)."
+        aiNote: data.notes ?? copy.aiApplied
       }));
     } catch (error) {
       setState((s) => ({
         ...s,
         analyzeLoading: false,
-        error: error instanceof Error ? error.message : "Erro na análise.",
+        error: error instanceof Error ? error.message : copy.analyzeError,
         aiNote: null
       }));
     }
@@ -108,18 +215,18 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
       } catch {
         throw new Error(
           response.ok
-            ? "Resposta inválida do servidor."
+            ? copy.invalidServer
             : `Erro ${response.status}: ${raw.slice(0, 200) || response.statusText}`
         );
       }
       if (!response.ok) {
-        throw new Error(data.error || "Falha ao salvar produto.");
+        throw new Error(data.error || copy.saveFail);
       }
 
       setState((s) => ({
         ...s,
         loading: false,
-        success: `Produto(s) criado(s): ${data.createdCount ?? 1}. ID referência: ${data.productId}`,
+        success: `${copy.created}: ${data.createdCount ?? 1}. ${copy.refId}: ${data.productId}`,
         error: null,
         aiNote: null
       }));
@@ -130,7 +237,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
       setState((s) => ({
         ...s,
         loading: false,
-        error: error instanceof Error ? error.message : "Erro inesperado.",
+        error: error instanceof Error ? error.message : copy.unexpected,
         success: null
       }));
     }
@@ -140,7 +247,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
     <form onSubmit={handleSubmit} className="tech-card space-y-6 rounded-2xl p-6">
       <div className="grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-zinc-300">Idioma original da descrição</span>
+          <span className="text-sm text-zinc-300">{copy.originalLanguage}</span>
           <select name="originalLanguage" className="rounded-md border border-white/15 bg-black/20 p-2">
             <option value="en">English</option>
             <option value="pt">Português</option>
@@ -149,7 +256,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-zinc-300">Preço (USD)</span>
+          <span className="text-sm text-zinc-300">{copy.price}</span>
           <input
             name="priceUsd"
             type="number"
@@ -162,23 +269,23 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
       </div>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm text-zinc-300">Título</span>
+        <span className="text-sm text-zinc-300">{copy.title}</span>
         <input name="title" ref={titleRef} required className="rounded-md border border-white/15 bg-black/20 p-2" />
       </label>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm text-zinc-300">Tags SEO (EUA)</span>
+        <span className="text-sm text-zinc-300">{copy.seoTags}</span>
         <input
           name="seoTags"
           ref={tagsRef}
-          placeholder="petg, laser cut, usa, …"
+          placeholder={copy.seoPlaceholder}
           className="rounded-md border border-white/15 bg-black/20 p-2"
         />
-        <span className="text-xs text-zinc-500">Separadas por vírgula; a IA pode preencher a partir da primeira foto.</span>
+        <span className="text-xs text-zinc-500">{copy.seoHint}</span>
       </label>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm text-zinc-300">Descrição</span>
+        <span className="text-sm text-zinc-300">{copy.description}</span>
         <textarea
           name="description"
           ref={descRef}
@@ -187,20 +294,20 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
           className="rounded-md border border-white/15 bg-black/20 p-2"
         />
         <span className="text-xs text-zinc-500">
-          Gramática nativa + EN/PT/ES são gerados no servidor ao salvar (OpenAI).
+          {copy.grammarHint}
         </span>
       </label>
 
       <div className="grid gap-4 md:grid-cols-3">
         <label className="flex flex-col gap-2 text-sm text-zinc-300">
-          Estoque (unid.)
+          {copy.stock}
           <input name="stockQty" type="number" step="1" min="0" className="rounded-md border border-white/15 bg-black/20 p-2" />
         </label>
         <label className="flex flex-col gap-2 text-sm text-zinc-300 md:col-span-2">
-          Variante (rótulo)
+          {copy.variant}
           <input
             name="variantLabel"
-            placeholder="Ex.: cor azul / tamanho M"
+            placeholder={copy.variantPlaceholder}
             className="rounded-md border border-white/15 bg-black/20 p-2"
           />
         </label>
@@ -208,7 +315,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm text-zinc-300">
-          Quantidade para criar de uma vez
+          {copy.batchCount}
           <input
             name="batchCount"
             type="number"
@@ -220,7 +327,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
         </label>
         <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/20 p-2">
           <input name="isOnline" type="checkbox" value="true" />
-          <span className="text-sm">Disponível online (aparece para comprador com botão de solicitação)</span>
+          <span className="text-sm">{copy.online}</span>
         </label>
       </div>
 
@@ -230,7 +337,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
           type="number"
           step="0.001"
           min="0"
-          placeholder="Peso (lbs)"
+          placeholder={copy.weight}
           className="rounded-md border border-white/15 bg-black/20 p-2"
         />
         <input
@@ -238,7 +345,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
           type="number"
           step="0.01"
           min="0"
-          placeholder="Largura (in)"
+          placeholder={copy.width}
           className="rounded-md border border-white/15 bg-black/20 p-2"
         />
         <input
@@ -246,7 +353,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
           type="number"
           step="0.01"
           min="0"
-          placeholder="Altura (in)"
+          placeholder={copy.height}
           className="rounded-md border border-white/15 bg-black/20 p-2"
         />
       </div>
@@ -257,12 +364,12 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
           type="number"
           step="0.01"
           min="0"
-          placeholder="Profundidade (in)"
+          placeholder={copy.depth}
           className="rounded-md border border-white/15 bg-black/20 p-2"
         />
         <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/20 p-2">
           <input name="hasCustomization" type="checkbox" value="true" />
-          <span className="text-sm">Permite personalização</span>
+          <span className="text-sm">{copy.customization}</span>
         </label>
       </div>
 
@@ -277,7 +384,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
           dragging ? "border-neon bg-neon/10" : "border-white/20 bg-white/5"
         }`}
       >
-        <p className="mb-3 text-zinc-200">Arraste e solte fotos aqui</p>
+        <p className="mb-3 text-zinc-200">{copy.dragDrop}</p>
         <input type="file" accept="image/*" multiple onChange={(event) => appendFiles(event.target.files)} />
       </div>
 
@@ -288,7 +395,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
           disabled={state.analyzeLoading}
           className="rounded-lg border border-neon/50 bg-neon/10 px-4 py-2 text-sm font-semibold text-neon transition hover:bg-neon/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {state.analyzeLoading ? "Analisando…" : "IA: sugerir título e tags (GPT-4o)"}
+          {state.analyzeLoading ? copy.analyzing : copy.analyze}
         </button>
       </div>
 
@@ -317,7 +424,7 @@ export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: 
         disabled={state.loading}
         className="rounded-lg bg-neon px-5 py-2.5 font-semibold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {state.loading ? "Salvando…" : "Salvar produto"}
+        {state.loading ? copy.saving : copy.save}
       </button>
     </form>
   );

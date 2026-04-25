@@ -17,6 +17,8 @@ export const localeFlags: Record<Locale, string> = {
 export const dictionary: Record<Locale, Record<string, string>> = {
   en: {
     navMarketplace: "Shop",
+    navCart: "Cart",
+    navMyAccount: "My account",
     navAdmin: "Admin",
     navAbout: "About Us",
     navLogin: "Sign in",
@@ -102,6 +104,8 @@ export const dictionary: Record<Locale, Record<string, string>> = {
   },
   pt: {
     navMarketplace: "Loja",
+    navCart: "Carrinho",
+    navMyAccount: "Minha conta",
     navAdmin: "Admin",
     navAbout: "Quem Somos",
     navLogin: "Entrar",
@@ -187,6 +191,8 @@ export const dictionary: Record<Locale, Record<string, string>> = {
   },
   es: {
     navMarketplace: "Tienda",
+    navCart: "Carrito",
+    navMyAccount: "Mi cuenta",
     navAdmin: "Admin",
     navAbout: "Quiénes Somos",
     navLogin: "Iniciar sesión",

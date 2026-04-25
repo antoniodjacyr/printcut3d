@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type DashboardProduct = {
   id: string;
@@ -14,6 +15,55 @@ type DashboardProduct = {
 };
 
 export function CatalogProductList({ refreshToken }: { refreshToken: number }) {
+  const { locale } = useLocale();
+  const copy =
+    locale === "pt"
+      ? {
+          title: "Produtos cadastrados",
+          subtitle: "Ative Disponível online para exibir no catálogo do comprador.",
+          loading: "Carregando produtos…",
+          empty: "Nenhum produto cadastrado ainda.",
+          product: "Produto",
+          price: "Preço",
+          stock: "Estoque",
+          variant: "Variante",
+          edit: "Editar",
+          online: "Online",
+          saving: "Salvando…",
+          available: "Disponível",
+          offline: "Offline"
+        }
+      : locale === "es"
+        ? {
+            title: "Productos registrados",
+            subtitle: "Activa Disponible online para mostrar en el catálogo del comprador.",
+            loading: "Cargando productos…",
+            empty: "Aún no hay productos registrados.",
+            product: "Producto",
+            price: "Precio",
+            stock: "Stock",
+            variant: "Variante",
+            edit: "Editar",
+            online: "Online",
+            saving: "Guardando…",
+            available: "Disponible",
+            offline: "Offline"
+          }
+        : {
+            title: "Registered products",
+            subtitle: "Enable Available online to show in buyer catalog.",
+            loading: "Loading products…",
+            empty: "No products registered yet.",
+            product: "Product",
+            price: "Price",
+            stock: "Stock",
+            variant: "Variant",
+            edit: "Edit",
+            online: "Online",
+            saving: "Saving…",
+            available: "Available",
+            offline: "Offline"
+          };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<DashboardProduct[]>([]);
@@ -58,15 +108,13 @@ export function CatalogProductList({ refreshToken }: { refreshToken: number }) {
 
   return (
     <section className="tech-card rounded-2xl p-6">
-      <h3 className="text-lg font-semibold text-white">Produtos cadastrados</h3>
-      <p className="mt-1 text-sm text-zinc-400">
-        Ative <span className="text-neon">Disponível online</span> para exibir no catálogo do comprador sem checkout, com botão de solicitação.
-      </p>
+      <h3 className="text-lg font-semibold text-white">{copy.title}</h3>
+      <p className="mt-1 text-sm text-zinc-400">{copy.subtitle}</p>
 
-      {loading && <p className="mt-4 text-sm text-zinc-400">Carregando produtos…</p>}
+      {loading && <p className="mt-4 text-sm text-zinc-400">{copy.loading}</p>}
       {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
       {!loading && !error && items.length === 0 && (
-        <p className="mt-4 text-sm text-zinc-500">Nenhum produto cadastrado ainda.</p>
+        <p className="mt-4 text-sm text-zinc-500">{copy.empty}</p>
       )}
 
       {!loading && !error && items.length > 0 && (
@@ -74,12 +122,12 @@ export function CatalogProductList({ refreshToken }: { refreshToken: number }) {
           <table className="w-full text-left text-sm text-zinc-300">
             <thead className="text-xs uppercase text-zinc-500">
               <tr>
-                <th className="pb-2 pr-4">Produto</th>
-                <th className="pb-2 pr-4">Preço</th>
-                <th className="pb-2 pr-4">Estoque</th>
-                <th className="pb-2 pr-4">Variante</th>
-                <th className="pb-2 pr-4">Editar</th>
-                <th className="pb-2">Online</th>
+                <th className="pb-2 pr-4">{copy.product}</th>
+                <th className="pb-2 pr-4">{copy.price}</th>
+                <th className="pb-2 pr-4">{copy.stock}</th>
+                <th className="pb-2 pr-4">{copy.variant}</th>
+                <th className="pb-2 pr-4">{copy.edit}</th>
+                <th className="pb-2">{copy.online}</th>
               </tr>
             </thead>
             <tbody>
@@ -99,7 +147,7 @@ export function CatalogProductList({ refreshToken }: { refreshToken: number }) {
                       href={`/dashboard/catalog/${item.id}`}
                       className="rounded-md border border-neon/40 px-3 py-1 text-xs text-neon hover:bg-neon/10"
                     >
-                      Editar
+                      {copy.edit}
                     </Link>
                   </td>
                   <td className="py-3">
@@ -111,7 +159,7 @@ export function CatalogProductList({ refreshToken }: { refreshToken: number }) {
                         item.isOnline ? "bg-emerald-500/20 text-emerald-300" : "bg-zinc-700/30 text-zinc-300"
                       } disabled:opacity-60`}
                     >
-                      {pendingIds[item.id] ? "Salvando…" : item.isOnline ? "Disponível" : "Offline"}
+                      {pendingIds[item.id] ? copy.saving : item.isOnline ? copy.available : copy.offline}
                     </button>
                   </td>
                 </tr>

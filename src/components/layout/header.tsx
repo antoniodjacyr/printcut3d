@@ -68,7 +68,7 @@ export function Header() {
             {t.navMarketplace}
           </Link>
           <Link href="/cart" className="relative hover:text-neon">
-            Carrinho
+            {t.navCart || "Cart"}
             {itemCount > 0 && (
               <span className="ml-2 rounded-full bg-neon px-2 py-0.5 text-[10px] font-semibold text-black">
                 {itemCount}
@@ -82,7 +82,7 @@ export function Header() {
             <>
               {!inAdminArea && (
                 <Link href="/minha-conta" className="hover:text-neon">
-                  Minha conta
+                  {t.navMyAccount || "My account"}
                 </Link>
               )}
               <Link href="/dashboard" className="hover:text-neon">
