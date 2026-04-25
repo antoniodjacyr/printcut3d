@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUserOrNull } from "@/lib/server/dashboard-auth";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
 export const runtime = "edge";
@@ -31,9 +32,15 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+    const auth = await getAuthenticatedUserOrNull();
+    if ("response" in auth) {
+      return auth.response;
+    }
+    const userId = auth.user?.id ?? null;
     const { data: cart, error: cartError } = await supabase
       .from("carts")
       .insert({
+        user_id: userId,
         email,
         last_activity_at: new Date().toISOString()
       })

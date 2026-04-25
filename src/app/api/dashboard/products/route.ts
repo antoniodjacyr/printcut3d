@@ -14,6 +14,24 @@ const parseNumber = (value: FormDataEntryValue | null) => {
   return Number.isFinite(num) ? num : null;
 };
 
+function mapSchemaError(message: string) {
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("could not find the table 'public.products'") ||
+    lower.includes("relation \"public.products\" does not exist") ||
+    lower.includes("relation \"products\" does not exist")
+  ) {
+    return "Tabela public.products não encontrada no Supabase. Execute o SQL base (supabase/schema.sql) no SQL Editor e recarregue.";
+  }
+  if (
+    lower.includes("could not find the table 'public.product_images'") ||
+    lower.includes("relation \"public.product_images\" does not exist")
+  ) {
+    return "Tabela public.product_images não encontrada. Execute o SQL base (supabase/schema.sql) no SQL Editor.";
+  }
+  return message;
+}
+
 const getImagePreview = (path: string | null) => {
   if (!path) return null;
   const supabase = getSupabaseAdmin();
@@ -35,7 +53,7 @@ export async function GET() {
       .limit(100);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: mapSchemaError(error.message) }, { status: 500 });
     }
 
     const productIds = (products ?? []).map((p) => p.id);
@@ -73,10 +91,10 @@ export async function GET() {
 
     return NextResponse.json({ products: rows });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro ao listar produtos." },
-      { status: 500 }
-    );
+      return NextResponse.json(
+        { error: mapSchemaError(error instanceof Error ? error.message : "Erro ao listar produtos.") },
+        { status: 500 }
+      );
   }
 }
 
@@ -100,20 +118,21 @@ export async function PATCH(request: Request) {
       .single();
 
     if (readError || !existing) {
-      return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+      const msg = readError ? mapSchemaError(readError.message) : "Produto não encontrado.";
+      return NextResponse.json({ error: msg }, { status: 404 });
     }
 
     const current = (existing.dimensions_in as Record<string, unknown> | null) ?? {};
     const dimensions = { ...current, online: isOnline };
     const { error: updateError } = await supabase.from("products").update({ dimensions_in: dimensions }).eq("id", productId);
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+      return NextResponse.json({ error: mapSchemaError(updateError.message) }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro ao atualizar disponibilidade." },
+      { error: mapSchemaError(error instanceof Error ? error.message : "Erro ao atualizar disponibilidade.") },
       { status: 500 }
     );
   }
@@ -139,7 +158,7 @@ export async function POST(request: Request) {
     }
 
     const formData = await request.formData();
-    const storeId = formData.get("storeId")?.toString().trim();
+    const requestedStoreId = formData.get("storeId")?.toString().trim();
     const originalLanguage = formData.get("originalLanguage")?.toString().trim() || "en";
     const title = formData.get("title")?.toString().trim() || "";
     const description = formData.get("description")?.toString().trim() || "";
@@ -162,7 +181,7 @@ export async function POST(request: Request) {
     const hasCustomization = parseBoolean(formData.get("hasCustomization"));
     const files = formData.getAll("images").filter((entry) => entry instanceof File) as File[];
 
-    if (!storeId || !title || !description || !priceUsd || priceUsd <= 0) {
+    if (!title || !description || !priceUsd || priceUsd <= 0) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
@@ -173,6 +192,54 @@ export async function POST(request: Request) {
     });
 
     const supabase = getSupabaseAdmin();
+    let storeId = requestedStoreId || "";
+    if (storeId) {
+      const { data: storeCheck, error: storeCheckError } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("id", storeId)
+        .single();
+      if (storeCheckError || !storeCheck) {
+        storeId = "";
+      }
+    }
+
+    if (!storeId) {
+      const { data: ownedStore, error: ownedStoreError } = await supabase
+        .from("stores")
+        .select("id")
+        .eq("owner_user_id", auth.user.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (!ownedStoreError && ownedStore?.id) {
+        storeId = ownedStore.id;
+      } else {
+        const fallbackStoreId = requestedStoreId || crypto.randomUUID();
+        const { data: createdStore, error: createStoreError } = await supabase
+          .from("stores")
+          .insert({
+            id: fallbackStoreId,
+            owner_user_id: auth.user.id,
+            name: "Minha Loja",
+            is_admin_store: true
+          })
+          .select("id")
+          .single();
+
+        if (createStoreError || !createdStore) {
+          return NextResponse.json(
+            {
+              error: mapSchemaError(createStoreError?.message || "Falha ao criar loja para vincular o produto.")
+            },
+            { status: 500 }
+          );
+        }
+        storeId = createdStore.id;
+      }
+    }
+
     const productIds: string[] = [];
     const imageBuffers = await Promise.all(
       files.map(async (file) => ({
@@ -206,7 +273,10 @@ export async function POST(request: Request) {
         .single();
 
       if (productError || !product) {
-        return NextResponse.json({ error: productError?.message || "Could not create product." }, { status: 500 });
+        return NextResponse.json(
+          { error: mapSchemaError(productError?.message || "Could not create product.") },
+          { status: 500 }
+        );
       }
 
       productIds.push(product.id);
@@ -222,7 +292,7 @@ export async function POST(request: Request) {
         });
 
         if (uploadError) {
-          return NextResponse.json({ error: uploadError.message }, { status: 500 });
+          return NextResponse.json({ error: mapSchemaError(uploadError.message) }, { status: 500 });
         }
 
         uploaded.push({ path, sortOrder: i });
@@ -238,7 +308,7 @@ export async function POST(request: Request) {
         );
 
         if (imageError) {
-          return NextResponse.json({ error: imageError.message }, { status: 500 });
+          return NextResponse.json({ error: mapSchemaError(imageError.message) }, { status: 500 });
         }
       }
     }
@@ -251,7 +321,7 @@ export async function POST(request: Request) {
       localized
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected error.";
+    const message = mapSchemaError(error instanceof Error ? error.message : "Unexpected error.");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

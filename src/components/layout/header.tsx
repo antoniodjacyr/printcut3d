@@ -77,6 +77,9 @@ export function Header() {
           </Link>
           {user ? (
             <>
+              <Link href="/minha-conta" className="hover:text-neon">
+                Minha conta
+              </Link>
               <Link href="/dashboard" className="hover:text-neon">
                 {t.navAdmin}
               </Link>
