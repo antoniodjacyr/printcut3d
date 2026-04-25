@@ -36,6 +36,10 @@ export function UsersAdminPanel() {
   const [items, setItems] = useState<EditableUser[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [recoveryLink, setRecoveryLink] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<EditableUser | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const totalAdmins = useMemo(() => items.filter((item) => item.role === "admin").length, [items]);
 
@@ -59,12 +63,21 @@ export function UsersAdminPanel() {
     void load();
   }, []);
 
-  const updateItem = (id: string, patch: Partial<EditableUser>) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  const openEditor = (user: EditableUser) => {
+    setSelectedUserId(user.id);
+    setDraft({ ...user });
+    setConfirmOpen(false);
   };
 
-  const save = async (item: EditableUser) => {
-    updateItem(item.id, { saving: true });
+  const closeEditor = () => {
+    setSelectedUserId(null);
+    setDraft(null);
+    setConfirmOpen(false);
+  };
+
+  const saveDraft = async () => {
+    if (!draft) return;
+    setSavingDraft(true);
     setError(null);
     setSuccess(null);
     setRecoveryLink(null);
@@ -73,26 +86,28 @@ export function UsersAdminPanel() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: item.id,
-          fullName: item.fullName,
-          phone: item.phone,
-          country: item.country,
-          city: item.city,
-          state: item.state,
-          zip: item.zip,
-          role: item.role,
-          emailConfirmed: item.emailConfirmed,
-          blocked: item.blocked
+          userId: draft.id,
+          fullName: draft.fullName,
+          phone: draft.phone,
+          country: draft.country,
+          city: draft.city,
+          state: draft.state,
+          zip: draft.zip,
+          role: draft.role,
+          emailConfirmed: draft.emailConfirmed,
+          blocked: draft.blocked
         })
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Falha ao salvar usuário.");
-      setSuccess(`Usuário atualizado: ${item.email}`);
+      setSuccess(`Usuário atualizado: ${draft.email}`);
       await load(query);
+      closeEditor();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar usuário.");
     } finally {
-      updateItem(item.id, { saving: false });
+      setSavingDraft(false);
+      setConfirmOpen(false);
     }
   };
 
@@ -158,114 +173,54 @@ export function UsersAdminPanel() {
         </p>
       )}
 
-      {!loading &&
-        items.map((item) => (
-          <article key={item.id} className="tech-card space-y-3 rounded-2xl p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-medium text-zinc-100">{item.email}</p>
-                <p className="text-xs text-zinc-500">ID: {item.id}</p>
-              </div>
-              <div className="text-right text-xs text-zinc-500">
-                <p>Criado: {item.createdAt ? new Date(item.createdAt).toLocaleString("pt-BR") : "-"}</p>
-                <p>Último login: {item.lastSignInAt ? new Date(item.lastSignInAt).toLocaleString("pt-BR") : "-"}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <input
-                value={item.fullName}
-                onChange={(e) => updateItem(item.id, { fullName: e.target.value })}
-                placeholder="Nome completo"
-                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
-              />
-              <input
-                value={item.phone}
-                onChange={(e) => updateItem(item.id, { phone: e.target.value })}
-                placeholder="Telefone"
-                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
-              />
-              <input
-                value={item.country}
-                onChange={(e) => updateItem(item.id, { country: e.target.value })}
-                placeholder="País"
-                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
-              />
-              <input
-                value={item.city}
-                onChange={(e) => updateItem(item.id, { city: e.target.value })}
-                placeholder="Cidade"
-                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
-              />
-              <input
-                value={item.state}
-                onChange={(e) => updateItem(item.id, { state: e.target.value })}
-                placeholder="Estado"
-                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
-              />
-              <input
-                value={item.zip}
-                onChange={(e) => updateItem(item.id, { zip: e.target.value })}
-                placeholder="ZIP"
-                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
-              />
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-4">
-              <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/30 p-2 text-sm">
-                <span className="text-zinc-300">Perfil</span>
-                <select
-                  value={item.role}
-                  onChange={(e) => updateItem(item.id, { role: e.target.value as "admin" | "customer" })}
-                  className="ml-auto rounded bg-black/40 p-1 text-zinc-200"
-                >
-                  <option value="customer">Cliente</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </label>
-              <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-300">
-                <input
-                  type="checkbox"
-                  checked={item.emailConfirmed}
-                  onChange={(e) => updateItem(item.id, { emailConfirmed: e.target.checked })}
-                />
-                E-mail confirmado
-              </label>
-              <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-300">
-                <input
-                  type="checkbox"
-                  checked={item.blocked}
-                  onChange={(e) => updateItem(item.id, { blocked: e.target.checked })}
-                />
-                Usuário bloqueado
-              </label>
-              <button
-                type="button"
-                disabled={item.saving}
-                onClick={() => void save(item)}
-                className="rounded-md bg-neon px-3 py-2 text-sm font-semibold text-black disabled:opacity-60"
-              >
-                {item.saving ? "Salvando..." : "Salvar alterações"}
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void runAction(item, "reset_password")}
-                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-zinc-200 hover:border-neon/40"
-              >
-                Gerar link de reset de senha
-              </button>
-              <button
-                type="button"
-                onClick={() => void runAction(item, "delete_user")}
-                className="rounded-md border border-red-400/40 px-3 py-1.5 text-xs text-red-200 hover:bg-red-500/10"
-              >
-                Excluir usuário
-              </button>
-            </div>
-          </article>
-        ))}
+      {!loading && (
+        <section className="tech-card rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-white">Lista de usuários</h3>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-sm text-zinc-300">
+              <thead className="text-xs uppercase text-zinc-500">
+                <tr>
+                  <th className="pb-2 pr-3">E-mail</th>
+                  <th className="pb-2 pr-3">Nome</th>
+                  <th className="pb-2 pr-3">Perfil</th>
+                  <th className="pb-2 pr-3">Status</th>
+                  <th className="pb-2 pr-3">Último login</th>
+                  <th className="pb-2">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id} className="border-t border-white/10">
+                    <td className="py-2 pr-3">{item.email}</td>
+                    <td className="py-2 pr-3">{item.fullName || "-"}</td>
+                    <td className="py-2 pr-3">{item.role === "admin" ? "Admin" : "Cliente"}</td>
+                    <td className="py-2 pr-3">{item.blocked ? "Bloqueado" : "Ativo"}</td>
+                    <td className="py-2 pr-3">
+                      {item.lastSignInAt ? new Date(item.lastSignInAt).toLocaleString("pt-BR") : "-"}
+                    </td>
+                    <td className="py-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditor(item)}
+                        className="rounded-md border border-neon/40 px-3 py-1 text-xs text-neon hover:bg-neon/10"
+                      >
+                        Editar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {items.length === 0 && (
+                  <tr>
+                    <td className="py-2 text-zinc-500" colSpan={6}>
+                      Nenhum usuário encontrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {!loading && (
         <section className="tech-card rounded-2xl p-6">
@@ -301,6 +256,148 @@ export function UsersAdminPanel() {
             </table>
           </div>
         </section>
+      )}
+
+      {selectedUserId && draft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-white/15 bg-[#090d18] p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Editar usuário</h3>
+                <p className="text-sm text-zinc-400">{draft.email}</p>
+                <p className="text-xs text-zinc-500">ID: {draft.id}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditor}
+                className="rounded-md border border-white/20 px-3 py-1 text-xs text-zinc-200 hover:border-white/40"
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <input
+                value={draft.fullName}
+                onChange={(e) => setDraft({ ...draft, fullName: e.target.value })}
+                placeholder="Nome completo"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
+              />
+              <input
+                value={draft.phone}
+                onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                placeholder="Telefone"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
+              />
+              <input
+                value={draft.country}
+                onChange={(e) => setDraft({ ...draft, country: e.target.value })}
+                placeholder="País"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
+              />
+              <input
+                value={draft.city}
+                onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+                placeholder="Cidade"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
+              />
+              <input
+                value={draft.state}
+                onChange={(e) => setDraft({ ...draft, state: e.target.value })}
+                placeholder="Estado"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
+              />
+              <input
+                value={draft.zip}
+                onChange={(e) => setDraft({ ...draft, zip: e.target.value })}
+                placeholder="ZIP"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm"
+              />
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/30 p-2 text-sm">
+                <span className="text-zinc-300">Perfil</span>
+                <select
+                  value={draft.role}
+                  onChange={(e) => setDraft({ ...draft, role: e.target.value as "admin" | "customer" })}
+                  className="ml-auto rounded bg-black/40 p-1 text-zinc-200"
+                >
+                  <option value="customer">Cliente</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={draft.emailConfirmed}
+                  onChange={(e) => setDraft({ ...draft, emailConfirmed: e.target.checked })}
+                />
+                E-mail confirmado
+              </label>
+              <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={draft.blocked}
+                  onChange={(e) => setDraft({ ...draft, blocked: e.target.checked })}
+                />
+                Usuário bloqueado
+              </label>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void runAction(draft, "reset_password")}
+                className="rounded-md border border-white/20 px-3 py-1.5 text-xs text-zinc-200 hover:border-neon/40"
+              >
+                Gerar link de reset de senha
+              </button>
+              <button
+                type="button"
+                onClick={() => void runAction(draft, "delete_user")}
+                className="rounded-md border border-red-400/40 px-3 py-1.5 text-xs text-red-200 hover:bg-red-500/10"
+              >
+                Excluir usuário
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(true)}
+                disabled={savingDraft}
+                className="ml-auto rounded-md bg-neon px-3 py-2 text-sm font-semibold text-black disabled:opacity-60"
+              >
+                {savingDraft ? "Salvando..." : "Salvar alterações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmOpen && draft && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4">
+          <div className="w-full max-w-md rounded-xl border border-white/15 bg-[#0a1020] p-5">
+            <h4 className="text-base font-semibold text-white">Confirmar alteração</h4>
+            <p className="mt-2 text-sm text-zinc-300">
+              Confirmar atualização do usuário <span className="text-neon">{draft.email}</span>?
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="rounded-md border border-white/20 px-3 py-1.5 text-sm text-zinc-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveDraft()}
+                className="rounded-md bg-neon px-3 py-1.5 text-sm font-semibold text-black"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );
