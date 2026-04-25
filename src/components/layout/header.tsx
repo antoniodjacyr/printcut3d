@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { dictionary } from "@/lib/i18n";
@@ -15,6 +16,8 @@ export function Header() {
   const t = useMemo(() => dictionary[locale], [locale]);
   const [user, setUser] = useState<User | null>(null);
   const { itemCount } = useCart();
+  const pathname = usePathname();
+  const inAdminArea = pathname?.startsWith("/dashboard") ?? false;
 
   useEffect(() => {
     const supabase = getBrowserSupabase();
@@ -77,9 +80,11 @@ export function Header() {
           </Link>
           {user ? (
             <>
-              <Link href="/minha-conta" className="hover:text-neon">
-                Minha conta
-              </Link>
+              {!inAdminArea && (
+                <Link href="/minha-conta" className="hover:text-neon">
+                  Minha conta
+                </Link>
+              )}
               <Link href="/dashboard" className="hover:text-neon">
                 {t.navAdmin}
               </Link>
