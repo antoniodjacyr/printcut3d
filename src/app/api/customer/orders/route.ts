@@ -87,7 +87,9 @@ export async function GET() {
       profile: {
         email: auth.user.email || "",
         name: rows[0]?.customerName || "",
-        phone: rows[0]?.customerPhone || ""
+        phone: rows[0]?.customerPhone || "",
+        avatarUrl:
+          typeof auth.user.user_metadata?.avatar_url === "string" ? auth.user.user_metadata.avatar_url : ""
       },
       orders: rows
     });

@@ -17,6 +17,8 @@ type CustomerOrder = {
   items: Array<{ title: string; quantity: number; unitPriceUsd: number; notes: string }>;
 };
 
+type Profile = { email: string; name: string; phone: string; avatarUrl?: string };
+
 const ORDER_STEPS = [
   { id: "received", label: "Recebido" },
   { id: "pricing", label: "Orçamento" },
@@ -36,8 +38,9 @@ function stepIndex(status: string) {
 export default function MinhaContaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<{ email: string; name: string; phone: string } | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -47,7 +50,7 @@ export default function MinhaContaPage() {
         const response = await fetch("/api/customer/orders", { cache: "no-store" });
         const data = (await response.json()) as {
           error?: string;
-          profile?: { email: string; name: string; phone: string };
+          profile?: Profile;
           orders?: CustomerOrder[];
         };
         if (!response.ok) throw new Error(data.error || "Falha ao carregar conta.");
@@ -71,6 +74,44 @@ export default function MinhaContaPage() {
 
       {profile && (
         <div className="tech-card grid gap-3 rounded-2xl p-4 md:grid-cols-3">
+          <div>
+            <p className="text-xs uppercase text-zinc-500">Foto</p>
+            <div className="mt-1 flex items-center gap-3">
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt="Avatar" className="h-12 w-12 rounded-full object-cover ring-1 ring-white/20" />
+              ) : (
+                <div className="h-12 w-12 rounded-full bg-white/10 ring-1 ring-white/20" />
+              )}
+              <label className="cursor-pointer text-xs text-neon hover:underline">
+                {uploadingPhoto ? "Enviando..." : "Atualizar foto"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingPhoto}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingPhoto(true);
+                    setError(null);
+                    try {
+                      const fd = new FormData();
+                      fd.set("avatar", file);
+                      const response = await fetch("/api/customer/profile-photo", { method: "POST", body: fd });
+                      const data = (await response.json()) as { error?: string; avatarUrl?: string };
+                      if (!response.ok) throw new Error(data.error || "Erro ao atualizar foto.");
+                      setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl || prev.avatarUrl } : prev));
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Erro ao atualizar foto.");
+                    } finally {
+                      setUploadingPhoto(false);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+              </label>
+            </div>
+          </div>
           <div>
             <p className="text-xs uppercase text-zinc-500">Nome</p>
             <p className="text-sm text-zinc-100">{profile.name || "-"}</p>

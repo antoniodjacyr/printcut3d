@@ -14,6 +14,36 @@ const parseNumber = (value: FormDataEntryValue | null) => {
   return Number.isFinite(num) ? num : null;
 };
 
+async function uploadWithBucketRetry(params: {
+  supabase: ReturnType<typeof getSupabaseAdmin>;
+  path: string;
+  bytes: ArrayBuffer;
+  contentType: string;
+}) {
+  const { supabase, path, bytes, contentType } = params;
+  let upload = await supabase.storage.from(storageBucket).upload(path, bytes.slice(0), {
+    contentType,
+    upsert: false
+  });
+
+  if (upload.error && upload.error.message.toLowerCase().includes("bucket not found")) {
+    const createResult = await supabase.storage.createBucket(storageBucket, {
+      public: true,
+      fileSizeLimit: "10MB"
+    });
+    if (createResult.error && !createResult.error.message.toLowerCase().includes("already exists")) {
+      return { error: createResult.error };
+    }
+
+    upload = await supabase.storage.from(storageBucket).upload(path, bytes.slice(0), {
+      contentType,
+      upsert: false
+    });
+  }
+
+  return upload;
+}
+
 function mapSchemaError(message: string) {
   const lower = message.toLowerCase();
   if (
@@ -32,10 +62,11 @@ function mapSchemaError(message: string) {
   return message;
 }
 
-const getImagePreview = (path: string | null) => {
+const getImagePreview = async (path: string | null) => {
   if (!path) return null;
   const supabase = getSupabaseAdmin();
-  return supabase.storage.from(storageBucket).getPublicUrl(path).data.publicUrl;
+  const signed = await supabase.storage.from(storageBucket).createSignedUrl(path, 3600);
+  return signed.data?.signedUrl || supabase.storage.from(storageBucket).getPublicUrl(path).data.publicUrl;
 };
 
 export async function GET() {
@@ -73,21 +104,24 @@ export async function GET() {
       });
     }
 
-    const rows = (products ?? []).map((p) => {
-      const meta = (p.dimensions_in as Record<string, unknown> | null) ?? {};
-      const isOnline = meta.online === true;
-      const title = (p.title as Record<string, string> | null)?.pt || (p.title as Record<string, string> | null)?.en || "Produto";
-      return {
-        id: p.id,
-        title,
-        priceUsd: p.price_usd,
-        stockQty: Number(meta.stock_qty ?? 0),
-        variantLabel: typeof meta.variant_label === "string" ? meta.variant_label : "",
-        isOnline,
-        createdAt: p.created_at,
-        imageUrl: getImagePreview(imageMap.get(p.id) ?? null)
-      };
-    });
+    const rows = await Promise.all(
+      (products ?? []).map(async (p) => {
+        const meta = (p.dimensions_in as Record<string, unknown> | null) ?? {};
+        const isOnline = meta.online === true;
+        const title =
+          (p.title as Record<string, string> | null)?.pt || (p.title as Record<string, string> | null)?.en || "Produto";
+        return {
+          id: p.id,
+          title,
+          priceUsd: p.price_usd,
+          stockQty: Number(meta.stock_qty ?? 0),
+          variantLabel: typeof meta.variant_label === "string" ? meta.variant_label : "",
+          isOnline,
+          createdAt: p.created_at,
+          imageUrl: await getImagePreview(imageMap.get(p.id) ?? null)
+        };
+      })
+    );
 
     return NextResponse.json({ products: rows });
   } catch (error) {
@@ -286,9 +320,11 @@ export async function POST(request: Request) {
         const extension = file.name.split(".").pop() || "jpg";
         const path = `${storeId}/${product.id}/${Date.now()}-${batchIndex}-${i}.${extension}`;
 
-        const { error: uploadError } = await supabase.storage.from(storageBucket).upload(path, file.bytes.slice(0), {
-          contentType: file.type,
-          upsert: false
+        const { error: uploadError } = await uploadWithBucketRetry({
+          supabase,
+          path,
+          bytes: file.bytes,
+          contentType: file.type
         });
 
         if (uploadError) {

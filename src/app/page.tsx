@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { MOCK_PRODUCTS } from "@/lib/mock-catalog";
 import { dictionary } from "@/lib/i18n";
 import { useLocale } from "@/components/providers/locale-provider";
-import { useCart } from "@/components/providers/cart-provider";
 
 const highlights = [
   { key: "cat3d" as const, accent: "from-blue-600/30 to-cyan-500/10" },
@@ -25,7 +24,6 @@ type OnlineCatalogProduct = {
 export default function Home() {
   const { locale } = useLocale();
   const t = useMemo(() => dictionary[locale], [locale]);
-  const { addItem } = useCart();
   const [onlineProducts, setOnlineProducts] = useState<OnlineCatalogProduct[]>([]);
 
   useEffect(() => {
@@ -129,20 +127,12 @@ export default function Home() {
                     {item.description[locale] || item.description.en || "Descrição indisponível."}
                   </p>
                   <p className="mt-3 text-2xl font-bold text-white">${Number(item.priceUsd).toFixed(2)}</p>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addItem({
-                        productId: item.id,
-                        title: item.title[locale] || item.title.en || "Produto",
-                        priceUsd: Number(item.priceUsd || 0),
-                        imageUrl: item.imageUrl
-                      })
-                    }
+                  <Link
+                    href={`/produto-online/${item.id}`}
                     className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-neon/40 py-2 text-sm text-neon hover:bg-neon/10"
                   >
-                    Adicionar ao carrinho
-                  </button>
+                    Ver detalhes
+                  </Link>
                 </article>
               ))}
             </div>
