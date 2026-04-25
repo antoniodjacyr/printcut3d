@@ -43,7 +43,9 @@ export function LoginForm({
   const nextPath = searchParams.get("next") || "/dashboard";
 
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   const configOk = urlPresent && keyMeta.present;
   const envBanner = !configOk
@@ -57,6 +59,7 @@ export function LoginForm({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setNotice(null);
     setLoading(true);
 
     const supabase = getBrowserSupabase();
@@ -69,6 +72,34 @@ export function LoginForm({
     const form = event.currentTarget;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+    const confirmPassword = (form.elements.namedItem("confirmPassword") as HTMLInputElement | null)?.value ?? "";
+
+    if (mode === "signup") {
+      if (password.length < 6) {
+        setError(t.loginSignupPasswordTooShort || "A senha deve ter ao menos 6 caracteres.");
+        setLoading(false);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError(t.loginSignupPasswordMismatch || "As senhas não coincidem.");
+        setLoading(false);
+        return;
+      }
+      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      if (signUpError) {
+        setError(signUpError.message || t.loginErrGeneric);
+        setLoading(false);
+        return;
+      }
+      setNotice(
+        t.loginSignupSuccess ||
+          "Conta criada com sucesso. Verifique seu e-mail para confirmar a conta, depois faça login."
+      );
+      setMode("signin");
+      form.reset();
+      setLoading(false);
+      return;
+    }
 
     const { error: signError } = await supabase.auth.signInWithPassword({ email, password });
     if (signError) {
@@ -111,6 +142,35 @@ export function LoginForm({
             </div>
           )}
 
+          <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/25 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signin");
+                setError(null);
+                setNotice(null);
+              }}
+              className={`rounded-lg px-3 py-2 text-sm transition ${
+                mode === "signin" ? "bg-neon/20 text-neon" : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              {t.loginSubmit}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signup");
+                setError(null);
+                setNotice(null);
+              }}
+              className={`rounded-lg px-3 py-2 text-sm transition ${
+                mode === "signup" ? "bg-neon/20 text-neon" : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              {t.loginSignupTab || "Criar conta"}
+            </button>
+          </div>
+
           <form className="space-y-5" onSubmit={(e) => void handleSubmit(e)}>
             <label className="block text-sm font-medium text-zinc-300">
               {t.loginEmail}
@@ -133,10 +193,27 @@ export function LoginForm({
                 className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
               />
             </label>
+            {mode === "signup" && (
+              <label className="block text-sm font-medium text-zinc-300">
+                {t.loginSignupConfirmPassword || "Confirmar senha"}
+                <input
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-neon/50 focus:ring-2 focus:ring-neon/20"
+                />
+              </label>
+            )}
 
             {error && (
               <div className="rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-100">
                 {error}
+              </div>
+            )}
+            {notice && (
+              <div className="rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                {notice}
               </div>
             )}
 
@@ -145,7 +222,7 @@ export function LoginForm({
               disabled={loading}
               className="w-full rounded-xl bg-neon py-3 text-sm font-semibold text-black shadow-[0_0_24px_rgba(93,226,255,0.25)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? t.loginLoading : t.loginSubmit}
+              {loading ? t.loginLoading : mode === "signin" ? t.loginSubmit : t.loginSignupSubmit || "Criar conta"}
             </button>
           </form>
 
