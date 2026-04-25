@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MOCK_PRODUCTS } from "@/lib/mock-catalog";
 import { dictionary } from "@/lib/i18n";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useCart } from "@/components/providers/cart-provider";
 
 const highlights = [
   { key: "cat3d" as const, accent: "from-blue-600/30 to-cyan-500/10" },
@@ -13,9 +14,33 @@ const highlights = [
   { key: "catCustom" as const, accent: "from-slate-500/30 to-zinc-800/20" }
 ];
 
+type OnlineCatalogProduct = {
+  id: string;
+  title: Record<string, string>;
+  description: Record<string, string>;
+  priceUsd: number;
+  imageUrl: string | null;
+};
+
 export default function Home() {
   const { locale } = useLocale();
   const t = useMemo(() => dictionary[locale], [locale]);
+  const { addItem } = useCart();
+  const [onlineProducts, setOnlineProducts] = useState<OnlineCatalogProduct[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const response = await fetch("/api/products/online", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = (await response.json()) as { products?: OnlineCatalogProduct[] };
+        setOnlineProducts(data.products ?? []);
+      } catch {
+        setOnlineProducts([]);
+      }
+    };
+    void load();
+  }, []);
 
   return (
     <div className="pb-20">
@@ -77,7 +102,51 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-white">Featured builds</h2>
+            <p className="mt-1 text-sm text-zinc-500">Itens online sem checkout: envie solicitação direto pelo botão.</p>
           </div>
+          {onlineProducts.length > 0 && (
+            <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {onlineProducts.map((item) => (
+                <article
+                  key={item.id}
+                  className="tech-card flex h-full flex-col rounded-2xl p-5 transition hover:border-neon/30 hover:ring-1 hover:ring-neon/20"
+                >
+                  {item.imageUrl ? (
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.title[locale] || item.title.en || "Product"}
+                      width={640}
+                      height={480}
+                      unoptimized
+                      className="mb-4 aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-white/10"
+                    />
+                  ) : (
+                    <div className="mb-4 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-white/10" />
+                  )}
+                  <p className="text-xs font-medium uppercase tracking-wide text-emerald-300">Disponível online</p>
+                  <h3 className="mt-1 text-lg font-semibold text-white">{item.title[locale] || item.title.en || "Produto"}</h3>
+                  <p className="mt-2 text-sm text-zinc-300">
+                    {item.description[locale] || item.description.en || "Descrição indisponível."}
+                  </p>
+                  <p className="mt-3 text-2xl font-bold text-white">${Number(item.priceUsd).toFixed(2)}</p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      addItem({
+                        productId: item.id,
+                        title: item.title[locale] || item.title.en || "Produto",
+                        priceUsd: Number(item.priceUsd || 0),
+                        imageUrl: item.imageUrl
+                      })
+                    }
+                    className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-neon/40 py-2 text-sm text-neon hover:bg-neon/10"
+                  >
+                    Adicionar ao carrinho
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {MOCK_PRODUCTS.map((sku) => (
               <Link key={sku.slug} href={`/product/${sku.slug}`} className="group block">

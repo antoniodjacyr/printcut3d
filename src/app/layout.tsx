@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { LocaleProvider } from "@/components/providers/locale-provider";
+import { CartProvider } from "@/components/providers/cart-provider";
 
 export const metadata: Metadata = {
   title: "Print & Cut 3D",
@@ -13,8 +14,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <LocaleProvider>
-          <Header />
-          <main>{children}</main>
+          <CartProvider>
+            <Header />
+            <main>{children}</main>
+          </CartProvider>
         </LocaleProvider>
       </body>
     </html>

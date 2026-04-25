@@ -13,7 +13,7 @@ type SubmitState = {
 
 const mockStoreId = "00000000-0000-0000-0000-000000000001";
 
-export function CatalogProductForm() {
+export function CatalogProductForm({ onProductsCreated }: { onProductsCreated?: () => void }) {
   const [images, setImages] = useState<File[]>([]);
   const [dragging, setDragging] = useState(false);
   const [state, setState] = useState<SubmitState>({
@@ -102,7 +102,7 @@ export function CatalogProductForm() {
         body: formData
       });
       const raw = await response.text();
-      let data: { error?: string; productId?: string } = {};
+      let data: { error?: string; productId?: string; createdCount?: number } = {};
       try {
         data = raw ? (JSON.parse(raw) as typeof data) : {};
       } catch {
@@ -119,12 +119,13 @@ export function CatalogProductForm() {
       setState((s) => ({
         ...s,
         loading: false,
-        success: `Produto criado. ID: ${data.productId}`,
+        success: `Produto(s) criado(s): ${data.createdCount ?? 1}. ID referência: ${data.productId}`,
         error: null,
         aiNote: null
       }));
       target.reset();
       setImages([]);
+      onProductsCreated?.();
     } catch (error) {
       setState((s) => ({
         ...s,
@@ -202,6 +203,24 @@ export function CatalogProductForm() {
             placeholder="Ex.: cor azul / tamanho M"
             className="rounded-md border border-white/15 bg-black/20 p-2"
           />
+        </label>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm text-zinc-300">
+          Quantidade para criar de uma vez
+          <input
+            name="batchCount"
+            type="number"
+            min="1"
+            max="25"
+            defaultValue={1}
+            className="rounded-md border border-white/15 bg-black/20 p-2"
+          />
+        </label>
+        <label className="flex items-center gap-2 rounded-md border border-white/15 bg-black/20 p-2">
+          <input name="isOnline" type="checkbox" value="true" />
+          <span className="text-sm">Disponível online (aparece para comprador com botão de solicitação)</span>
         </label>
       </div>
 

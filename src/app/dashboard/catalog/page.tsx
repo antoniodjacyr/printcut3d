@@ -1,6 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import { CatalogProductForm } from "@/components/dashboard/catalog-product-form";
+import { CatalogProductList } from "@/components/dashboard/catalog-product-list";
+import { QuoteRequestsList } from "@/components/dashboard/quote-requests-list";
 
 export default function DashboardCatalogPage() {
+  const [refreshToken, setRefreshToken] = useState(0);
+
   return (
     <div className="space-y-6">
       <div>
@@ -23,7 +30,9 @@ export default function DashboardCatalogPage() {
           </li>
         </ul>
       </div>
-      <CatalogProductForm />
+      <CatalogProductList refreshToken={refreshToken} />
+      <CatalogProductForm onProductsCreated={() => setRefreshToken((v) => v + 1)} />
+      <QuoteRequestsList refreshToken={refreshToken} />
     </div>
   );
 }

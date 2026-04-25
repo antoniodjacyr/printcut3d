@@ -7,12 +7,14 @@ import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { dictionary } from "@/lib/i18n";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useCart } from "@/components/providers/cart-provider";
 import { LanguageSwitcher } from "./language-switcher";
 
 export function Header() {
   const { locale, setLocale } = useLocale();
   const t = useMemo(() => dictionary[locale], [locale]);
   const [user, setUser] = useState<User | null>(null);
+  const { itemCount } = useCart();
 
   useEffect(() => {
     const supabase = getBrowserSupabase();
@@ -61,6 +63,14 @@ export function Header() {
         <nav className="flex flex-wrap items-center gap-4 text-sm text-zinc-200 md:gap-6">
           <Link href="/" className="hover:text-neon">
             {t.navMarketplace}
+          </Link>
+          <Link href="/cart" className="relative hover:text-neon">
+            Carrinho
+            {itemCount > 0 && (
+              <span className="ml-2 rounded-full bg-neon px-2 py-0.5 text-[10px] font-semibold text-black">
+                {itemCount}
+              </span>
+            )}
           </Link>
           <Link href="/quem-somos" className="hover:text-neon">
             {t.navAbout}
