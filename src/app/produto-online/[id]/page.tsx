@@ -6,6 +6,8 @@ import { useParams } from "next/navigation";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useCart } from "@/components/providers/cart-provider";
 
+export const runtime = "edge";
+
 type ProductDetail = {
   id: string;
   title: Record<string, string>;
