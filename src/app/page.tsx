@@ -18,6 +18,7 @@ type OnlineCatalogProduct = {
   description: Record<string, string>;
   priceUsd: number;
   imageUrl: string | null;
+  stockQty?: number;
 };
 
 export default function Home() {
@@ -25,6 +26,8 @@ export default function Home() {
   const t = useMemo(() => dictionary[locale], [locale]);
   const [onlineProducts, setOnlineProducts] = useState<OnlineCatalogProduct[]>([]);
   const [search, setSearch] = useState("");
+  const [maxPrice, setMaxPrice] = useState<number>(500);
+  const [onlyInStock, setOnlyInStock] = useState<boolean>(true);
 
   const copy =
     locale === "pt"
@@ -35,7 +38,15 @@ export default function Home() {
           details: "Ver detalhes",
           available: "Disponível online",
           noResults: "Nenhum produto encontrado para essa busca.",
-          noProducts: "Nenhum produto disponível no momento."
+          noProducts: "Nenhum produto disponível no momento.",
+          filters: "Filtros",
+          maxPrice: "Preço máximo",
+          inStock: "Somente em estoque",
+          productsFound: "produtos encontrados",
+          sortLabel: "Ordenação",
+          sortRelevance: "Relevância",
+          sortPriceAsc: "Menor preço",
+          sortPriceDesc: "Maior preço"
         }
       : locale === "es"
         ? {
@@ -45,7 +56,15 @@ export default function Home() {
             details: "Ver detalles",
             available: "Disponible online",
             noResults: "No se encontraron productos para esta búsqueda.",
-            noProducts: "No hay productos disponibles por ahora."
+            noProducts: "No hay productos disponibles por ahora.",
+            filters: "Filtros",
+            maxPrice: "Precio máximo",
+            inStock: "Solo en stock",
+            productsFound: "productos encontrados",
+            sortLabel: "Ordenar",
+            sortRelevance: "Relevancia",
+            sortPriceAsc: "Precio menor",
+            sortPriceDesc: "Precio mayor"
           }
         : {
             catalogTitle: "Online catalog",
@@ -54,18 +73,32 @@ export default function Home() {
             details: "View details",
             available: "Available online",
             noResults: "No products found for this search.",
-            noProducts: "No products available right now."
+            noProducts: "No products available right now.",
+            filters: "Filters",
+            maxPrice: "Max price",
+            inStock: "In-stock only",
+            productsFound: "products found",
+            sortLabel: "Sort",
+            sortRelevance: "Relevance",
+            sortPriceAsc: "Lowest price",
+            sortPriceDesc: "Highest price"
           };
+  const [sortBy, setSortBy] = useState<"relevance" | "price_asc" | "price_desc">("relevance");
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return onlineProducts;
-    return onlineProducts.filter((item) => {
+    const base = onlineProducts.filter((item) => {
       const title = (item.title[locale] || item.title.en || "").toLowerCase();
       const description = (item.description[locale] || item.description.en || "").toLowerCase();
-      return title.includes(term) || description.includes(term);
+      const textMatch = !term || title.includes(term) || description.includes(term);
+      const priceMatch = Number(item.priceUsd || 0) <= maxPrice;
+      const stockMatch = !onlyInStock || Number(item.stockQty || 0) > 0;
+      return textMatch && priceMatch && stockMatch;
     });
-  }, [onlineProducts, search, locale]);
+    if (sortBy === "price_asc") return [...base].sort((a, b) => Number(a.priceUsd) - Number(b.priceUsd));
+    if (sortBy === "price_desc") return [...base].sort((a, b) => Number(b.priceUsd) - Number(a.priceUsd));
+    return base;
+  }, [onlineProducts, search, locale, maxPrice, onlyInStock, sortBy]);
 
   useEffect(() => {
     const load = async () => {
@@ -148,47 +181,106 @@ export default function Home() {
               placeholder={copy.searchPlaceholder}
               className="mt-4 w-full max-w-xl rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-neon/50 focus:outline-none"
             />
+            <p className="mt-2 text-xs text-zinc-500">
+              {filteredProducts.length} {copy.productsFound}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 lg:hidden">
+              <label className="text-xs text-zinc-400">{copy.sortLabel}</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "relevance" | "price_asc" | "price_desc")}
+                className="rounded-md border border-white/15 bg-black/30 px-2 py-1.5 text-xs text-zinc-100"
+              >
+                <option value="relevance">{copy.sortRelevance}</option>
+                <option value="price_asc">{copy.sortPriceAsc}</option>
+                <option value="price_desc">{copy.sortPriceDesc}</option>
+              </select>
+            </div>
           </div>
 
-          {filteredProducts.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredProducts.map((item) => (
-                <article
-                  key={item.id}
-                  className="tech-card flex h-full flex-col rounded-2xl p-4 transition hover:border-neon/30 hover:ring-1 hover:ring-neon/20"
-                >
-                  {item.imageUrl ? (
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.title[locale] || item.title.en || "Product"}
-                      width={640}
-                      height={480}
-                      unoptimized
-                      className="mb-3 aspect-[4/2.6] w-full rounded-xl object-cover ring-1 ring-white/10"
-                    />
-                  ) : (
-                    <div className="mb-3 aspect-[4/2.6] w-full rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-white/10" />
-                  )}
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-300">{copy.available}</p>
-                  <h3 className="mt-1 text-base font-semibold text-white">{item.title[locale] || item.title.en || "Produto"}</h3>
-                  <p className="mt-1 text-sm text-zinc-300">
-                    {item.description[locale] || item.description.en || "Descrição indisponível."}
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-white">${Number(item.priceUsd).toFixed(2)}</p>
-                  <Link
-                    href={`/produto-online/${item.id}`}
-                    className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-neon/40 py-1.5 text-sm text-neon hover:bg-neon/10"
+          <div className="grid gap-4 lg:grid-cols-[230px_1fr]">
+            <aside className="tech-card h-fit rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white">{copy.filters}</h3>
+              <div className="mt-3 space-y-3">
+                <label className="block text-xs text-zinc-500">
+                  {copy.maxPrice}: ${maxPrice}
+                  <input
+                    type="range"
+                    min={5}
+                    max={500}
+                    step={5}
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                    className="mt-1 w-full"
+                  />
+                </label>
+                <label className="flex items-center gap-2 text-sm text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={onlyInStock}
+                    onChange={(e) => setOnlyInStock(e.target.checked)}
+                  />
+                  {copy.inStock}
+                </label>
+                <label className="block text-xs text-zinc-500">
+                  {copy.sortLabel}
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as "relevance" | "price_asc" | "price_desc")}
+                    className="mt-1 w-full rounded-md border border-white/15 bg-black/30 px-2 py-1.5 text-xs text-zinc-100"
                   >
-                    {copy.details}
-                  </Link>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-lg border border-white/10 bg-black/25 p-4 text-sm text-zinc-400">
-              {onlineProducts.length === 0 ? copy.noProducts : copy.noResults}
-            </p>
-          )}
+                    <option value="relevance">{copy.sortRelevance}</option>
+                    <option value="price_asc">{copy.sortPriceAsc}</option>
+                    <option value="price_desc">{copy.sortPriceDesc}</option>
+                  </select>
+                </label>
+              </div>
+            </aside>
+
+            {filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredProducts.map((item) => (
+                  <article
+                    key={item.id}
+                    className="tech-card flex h-full flex-row gap-3 rounded-xl p-3 transition hover:border-neon/30 hover:ring-1 hover:ring-neon/20 md:flex-col md:gap-0"
+                  >
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.title[locale] || item.title.en || "Product"}
+                        width={640}
+                        height={480}
+                        unoptimized
+                        className="h-28 w-28 shrink-0 rounded-lg object-cover ring-1 ring-white/10 md:mb-2 md:h-auto md:w-full md:aspect-[4/3]"
+                      />
+                    ) : (
+                      <div className="h-28 w-28 shrink-0 rounded-lg bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-white/10 md:mb-2 md:h-auto md:w-full md:aspect-[4/3]" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-300">{copy.available}</p>
+                      <h3 className="mt-1 line-clamp-2 text-sm font-semibold text-white md:text-base">
+                        {item.title[locale] || item.title.en || "Produto"}
+                      </h3>
+                      <p className="mt-1 hidden text-xs text-zinc-300 md:block">
+                        {item.description[locale] || item.description.en || "Descrição indisponível."}
+                      </p>
+                      <p className="mt-1 text-lg font-bold text-white md:text-xl">${Number(item.priceUsd).toFixed(2)}</p>
+                      <Link
+                        href={`/produto-online/${item.id}`}
+                        className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-neon/40 py-1.5 text-xs text-neon hover:bg-neon/10 md:text-sm"
+                      >
+                        {copy.details}
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-white/10 bg-black/25 p-4 text-sm text-zinc-400">
+                {onlineProducts.length === 0 ? copy.noProducts : copy.noResults}
+              </p>
+            )}
+          </div>
         </div>
       </section>
 

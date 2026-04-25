@@ -47,7 +47,9 @@ export async function GET() {
         const path = imageMap.get(p.id);
         let imageUrl: string | null = null;
         if (path) {
-          const signed = await supabase.storage.from(storageBucket).createSignedUrl(path, 3600);
+          const signed = await supabase.storage.from(storageBucket).createSignedUrl(path, 3600, {
+            transform: { width: 640, height: 480, quality: 65, resize: "cover" }
+          });
           imageUrl = signed.data?.signedUrl || supabase.storage.from(storageBucket).getPublicUrl(path).data.publicUrl;
         }
         return {

@@ -3,6 +3,72 @@ import { requireDashboardUser } from "@/lib/server/dashboard-auth";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
 export const runtime = "edge";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://printcut3d.com";
+
+async function sendOrderUpdateEmail(params: {
+  to: string;
+  requestId: string;
+  orderStatus: string;
+  paymentStatus: string;
+  sellerMessage: string;
+}) {
+  const apiKey = (process.env.RESEND_API_KEY || "").trim();
+  if (!apiKey) return { sent: false as const, reason: "missing_api_key" as const };
+
+  const from = (process.env.ORDER_UPDATES_FROM_EMAIL || "Print & Cut 3D <onboarding@resend.dev>").trim();
+  const subject = `Atualizacao do pedido ${params.requestId.slice(0, 8)} - ${params.orderStatus}`;
+  const trackUrl = `${siteUrl.replace(/\/+$/, "")}/track-order`;
+  const text = [
+    "Seu pedido foi atualizado.",
+    "",
+    `Pedido: ${params.requestId}`,
+    `Status do pedido: ${params.orderStatus}`,
+    `Status do pagamento: ${params.paymentStatus}`,
+    "",
+    `Mensagem: ${params.sellerMessage}`,
+    "",
+    `Acompanhe em: ${trackUrl}`,
+    "",
+    "Print & Cut 3D"
+  ].join("\n");
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
+      <h2>Atualizacao do pedido</h2>
+      <p>Seu pedido foi atualizado.</p>
+      <p><strong>Pedido:</strong> ${params.requestId}<br />
+      <strong>Status do pedido:</strong> ${params.orderStatus}<br />
+      <strong>Status do pagamento:</strong> ${params.paymentStatus}</p>
+      <p><strong>Mensagem:</strong> ${params.sellerMessage}</p>
+      <p><a href="${trackUrl}">Acompanhar pedido</a></p>
+      <p>Print &amp; Cut 3D</p>
+    </div>
+  `;
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from,
+        to: [params.to],
+        subject,
+        text,
+        html
+      })
+    });
+    if (!response.ok) {
+      const raw = await response.text();
+      return { sent: false as const, reason: raw || `http_${response.status}` };
+    }
+    return { sent: true as const };
+  } catch (error) {
+    return { sent: false as const, reason: error instanceof Error ? error.message : "send_failed" };
+  }
+}
 
 type ParsedMeta = {
   customer_name?: string;
@@ -111,6 +177,8 @@ export async function PATCH(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+    const { data: cartRow } = await supabase.from("carts").select("email").eq("id", requestId).single();
+    const customerEmail = (cartRow?.email || "").trim().toLowerCase();
     const { data: items, error: readError } = await supabase
       .from("cart_items")
       .select("id, customization_text")
@@ -143,7 +211,18 @@ export async function PATCH(request: Request) {
     }
 
     await supabase.from("carts").update({ last_activity_at: now }).eq("id", requestId);
-    return NextResponse.json({ success: true });
+    const emailResult =
+      customerEmail && customerEmail.includes("@")
+        ? await sendOrderUpdateEmail({
+            to: customerEmail,
+            requestId,
+            orderStatus,
+            paymentStatus: paymentStatus || "pending",
+            sellerMessage: (body.sellerMessage || "").trim()
+          })
+        : { sent: false as const, reason: "missing_customer_email" };
+
+    return NextResponse.json({ success: true, emailSent: emailResult.sent, emailReason: emailResult.reason || null });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao atualizar status." },

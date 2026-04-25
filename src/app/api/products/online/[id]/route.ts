@@ -34,7 +34,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const path = images?.[0]?.storage_path;
     let imageUrl: string | null = null;
     if (path) {
-      const signed = await supabase.storage.from(storageBucket).createSignedUrl(path, 3600);
+      const signed = await supabase.storage.from(storageBucket).createSignedUrl(path, 3600, {
+        transform: { width: 1200, height: 900, quality: 75, resize: "cover" }
+      });
       imageUrl = signed.data?.signedUrl || supabase.storage.from(storageBucket).getPublicUrl(path).data.publicUrl;
     }
 
