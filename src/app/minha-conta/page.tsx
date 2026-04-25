@@ -40,7 +40,6 @@ export default function MinhaContaPage() {
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -82,34 +81,7 @@ export default function MinhaContaPage() {
               ) : (
                 <div className="h-12 w-12 rounded-full bg-white/10 ring-1 ring-white/20" />
               )}
-              <label className="cursor-pointer text-xs text-neon hover:underline">
-                {uploadingPhoto ? "Enviando..." : "Atualizar foto"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={uploadingPhoto}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setUploadingPhoto(true);
-                    setError(null);
-                    try {
-                      const fd = new FormData();
-                      fd.set("avatar", file);
-                      const response = await fetch("/api/customer/profile-photo", { method: "POST", body: fd });
-                      const data = (await response.json()) as { error?: string; avatarUrl?: string };
-                      if (!response.ok) throw new Error(data.error || "Erro ao atualizar foto.");
-                      setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl || prev.avatarUrl } : prev));
-                    } catch (err) {
-                      setError(err instanceof Error ? err.message : "Erro ao atualizar foto.");
-                    } finally {
-                      setUploadingPhoto(false);
-                      e.target.value = "";
-                    }
-                  }}
-                />
-              </label>
+              <span className="text-xs text-zinc-500">Foto definida pelo administrador.</span>
             </div>
           </div>
           <div>

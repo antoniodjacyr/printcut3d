@@ -17,10 +17,26 @@ const parseBool = (value: FormDataEntryValue | null) => value === "true";
 
 async function uploadImage(supabase: ReturnType<typeof getSupabaseAdmin>, path: string, file: File) {
   const bytes = await file.arrayBuffer();
-  return supabase.storage.from(storageBucket).upload(path, bytes, {
+  let upload = await supabase.storage.from(storageBucket).upload(path, bytes.slice(0), {
     contentType: file.type || "image/jpeg",
     upsert: false
   });
+
+  if (upload.error && upload.error.message.toLowerCase().includes("bucket not found")) {
+    const createResult = await supabase.storage.createBucket(storageBucket, {
+      public: true,
+      fileSizeLimit: "10MB"
+    });
+    if (createResult.error && !createResult.error.message.toLowerCase().includes("already exists")) {
+      return { error: createResult.error };
+    }
+    upload = await supabase.storage.from(storageBucket).upload(path, bytes.slice(0), {
+      contentType: file.type || "image/jpeg",
+      upsert: false
+    });
+  }
+
+  return upload;
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
