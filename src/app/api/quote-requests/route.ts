@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       country: payload.customer.country?.trim() || "",
       customer_details: payload.customer.details?.trim() || "",
       payment_preference: payload.customer.paymentPreference || "to_be_defined",
+      payment_status: "pending",
       order_status: "received",
       seller_message: "Pedido recebido. Em breve enviaremos o valor total.",
       status_updated_at: new Date().toISOString()

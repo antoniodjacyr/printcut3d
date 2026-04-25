@@ -9,6 +9,7 @@ type CustomerOrder = {
   customerPhone: string;
   customerDetails: string;
   paymentPreference: string;
+  paymentStatus: string;
   orderStatus: string;
   sellerMessage: string;
   statusUpdatedAt: string;
@@ -17,7 +18,18 @@ type CustomerOrder = {
   items: Array<{ title: string; quantity: number; unitPriceUsd: number; notes: string }>;
 };
 
-type Profile = { email: string; name: string; phone: string; avatarUrl?: string };
+type Profile = {
+  email: string;
+  name: string;
+  phone: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  avatarUrl?: string;
+};
 
 const ORDER_STEPS = [
   { id: "received", label: "Recebido" },
@@ -38,8 +50,23 @@ function stepIndex(status: string) {
 export default function MinhaContaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "USA"
+  });
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [activeTab, setActiveTab] = useState<"profile" | "orders">("profile");
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -54,7 +81,18 @@ export default function MinhaContaPage() {
         };
         if (!response.ok) throw new Error(data.error || "Falha ao carregar conta.");
         setProfile(data.profile ?? null);
+        setForm({
+          name: data.profile?.name || "",
+          phone: data.profile?.phone || "",
+          addressLine1: data.profile?.addressLine1 || "",
+          addressLine2: data.profile?.addressLine2 || "",
+          city: data.profile?.city || "",
+          state: data.profile?.state || "",
+          zip: data.profile?.zip || "",
+          country: data.profile?.country || "USA"
+        });
         setOrders(data.orders ?? []);
+        setSelectedOrderId((data.orders ?? [])[0]?.id ?? null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao carregar conta.");
       } finally {
@@ -64,6 +102,70 @@ export default function MinhaContaPage() {
     void load();
   }, []);
 
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch("/api/customer/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form)
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(data.error || "Erro ao salvar perfil.");
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              name: form.name,
+              phone: form.phone,
+              addressLine1: form.addressLine1,
+              addressLine2: form.addressLine2,
+              city: form.city,
+              state: form.state,
+              zip: form.zip,
+              country: form.country
+            }
+          : prev
+      );
+      setSuccess("Dados atualizados com sucesso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar perfil.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const uploadAvatar = async (file: File | null) => {
+    if (!file) return;
+    setSavingAvatar(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const fd = new FormData();
+      fd.set("avatar", file);
+      const response = await fetch("/api/customer/profile/avatar", { method: "POST", body: fd });
+      const data = (await response.json()) as { error?: string; avatarUrl?: string };
+      if (!response.ok) throw new Error(data.error || "Erro ao atualizar foto.");
+      setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl || prev.avatarUrl } : prev));
+      setSuccess("Foto de perfil atualizada.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar foto.");
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
+
+  const selectedOrder = orders.find((order) => order.id === selectedOrderId) || null;
+  const paymentStatusLabel = (status: string) =>
+    ({
+      pending: "Pendente",
+      processing: "Processando",
+      paid: "Pago",
+      refunded: "Reembolsado"
+    })[status] || status;
+
   return (
     <section className="mx-auto max-w-6xl space-y-6 px-6 py-10">
       <header>
@@ -71,8 +173,25 @@ export default function MinhaContaPage() {
         <p className="mt-1 text-sm text-zinc-400">Acompanhe seus pedidos e atualizações da loja em tempo real.</p>
       </header>
 
-      {profile && (
-        <div className="tech-card grid gap-3 rounded-2xl p-4 md:grid-cols-3">
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("profile")}
+          className={`rounded-md px-4 py-2 text-sm ${activeTab === "profile" ? "bg-neon text-black" : "border border-white/15 text-zinc-200"}`}
+        >
+          Perfil
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("orders")}
+          className={`rounded-md px-4 py-2 text-sm ${activeTab === "orders" ? "bg-neon text-black" : "border border-white/15 text-zinc-200"}`}
+        >
+          Meus pedidos
+        </button>
+      </div>
+
+      {activeTab === "profile" && profile && (
+        <div className="tech-card grid gap-4 rounded-2xl p-4 md:grid-cols-3">
           <div>
             <p className="text-xs uppercase text-zinc-500">Foto</p>
             <div className="mt-1 flex items-center gap-3">
@@ -81,12 +200,25 @@ export default function MinhaContaPage() {
               ) : (
                 <div className="h-12 w-12 rounded-full bg-white/10 ring-1 ring-white/20" />
               )}
-              <span className="text-xs text-zinc-500">Foto definida pelo administrador.</span>
+              <label className="text-xs text-neon hover:underline">
+                {savingAvatar ? "Enviando..." : "Alterar foto"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={savingAvatar}
+                  onChange={(e) => void uploadAvatar(e.target.files?.[0] || null)}
+                />
+              </label>
             </div>
           </div>
           <div>
             <p className="text-xs uppercase text-zinc-500">Nome</p>
-            <p className="text-sm text-zinc-100">{profile.name || "-"}</p>
+            <input
+              value={form.name}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              className="mt-1 w-full rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
+            />
           </div>
           <div>
             <p className="text-xs uppercase text-zinc-500">E-mail</p>
@@ -94,59 +226,143 @@ export default function MinhaContaPage() {
           </div>
           <div>
             <p className="text-xs uppercase text-zinc-500">Telefone</p>
-            <p className="text-sm text-zinc-100">{profile.phone || "-"}</p>
+            <input
+              value={form.phone}
+              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+              className="mt-1 w-full rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <p className="text-xs uppercase text-zinc-500">Endereço</p>
+            <input
+              value={form.addressLine1}
+              onChange={(e) => setForm((prev) => ({ ...prev, addressLine1: e.target.value }))}
+              placeholder="Endereço"
+              className="mt-1 w-full rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
+            />
+            <input
+              value={form.addressLine2}
+              onChange={(e) => setForm((prev) => ({ ...prev, addressLine2: e.target.value }))}
+              placeholder="Complemento"
+              className="mt-2 w-full rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
+            />
+            <div className="mt-2 grid gap-2 sm:grid-cols-4">
+              <input
+                value={form.city}
+                onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
+                placeholder="Cidade"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
+              />
+              <input
+                value={form.state}
+                onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))}
+                placeholder="Estado"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
+              />
+              <input
+                value={form.zip}
+                onChange={(e) => setForm((prev) => ({ ...prev, zip: e.target.value }))}
+                placeholder="ZIP"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
+              />
+              <input
+                value={form.country}
+                onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
+                placeholder="País"
+                className="rounded-md border border-white/15 bg-black/30 p-2 text-sm text-zinc-100"
+              />
+            </div>
+          </div>
+          <div className="md:col-span-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => void saveProfile()}
+              disabled={savingProfile}
+              className="rounded-md bg-neon px-4 py-2 text-sm font-semibold text-black disabled:opacity-60"
+            >
+              {savingProfile ? "Salvando..." : "Salvar perfil"}
+            </button>
           </div>
         </div>
       )}
+      {success && <p className="text-sm text-emerald-300">{success}</p>}
+      {error && <p className="text-sm text-red-300">{error}</p>}
 
-      <div className="tech-card rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-white">Meus pedidos</h2>
-        {loading && <p className="mt-4 text-sm text-zinc-400">Carregando pedidos…</p>}
-        {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
-        {!loading && !error && orders.length === 0 && (
-          <p className="mt-4 text-sm text-zinc-500">Você ainda não possui pedidos.</p>
-        )}
-        {!loading && !error && orders.length > 0 && (
-          <div className="mt-4 space-y-4">
-            {orders.map((order) => (
-              <article key={order.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-zinc-100">Pedido {order.id}</p>
-                    <p className="text-xs text-zinc-500">
-                      Criado em {new Date(order.createdAt).toLocaleString("pt-BR")} · {order.totalItems} item(ns)
-                    </p>
+      {activeTab === "orders" && (
+        <div className="tech-card rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-white">Meus pedidos</h2>
+          {loading && <p className="mt-4 text-sm text-zinc-400">Carregando pedidos…</p>}
+          {!loading && !error && orders.length === 0 && (
+            <p className="mt-4 text-sm text-zinc-500">Você ainda não possui pedidos.</p>
+          )}
+          {!loading && !error && orders.length > 0 && (
+            <div className="mt-4 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+              <aside className="space-y-2">
+                {orders.map((order) => {
+                  const selected = selectedOrderId === order.id;
+                  return (
+                    <button
+                      key={order.id}
+                      type="button"
+                      onClick={() => setSelectedOrderId(order.id)}
+                      className={`w-full rounded-lg border p-3 text-left transition ${
+                        selected ? "border-neon/50 bg-neon/10" : "border-white/10 bg-black/25 hover:border-white/30"
+                      }`}
+                    >
+                      <p className="font-medium text-zinc-100">Pedido {order.id.slice(0, 8)}...</p>
+                      <p className="text-xs text-zinc-500">{new Date(order.createdAt).toLocaleString("pt-BR")}</p>
+                      <p className="mt-1 text-xs text-zinc-300">
+                        {order.totalItems} item(ns) · ${order.estimatedSubtotalUsd.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-emerald-300">
+                        {order.orderStatus} · pagamento: {paymentStatusLabel(order.paymentStatus)}
+                      </p>
+                    </button>
+                  );
+                })}
+              </aside>
+
+              {selectedOrder && (
+                <article className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-zinc-100">Pedido {selectedOrder.id}</p>
+                      <p className="text-xs text-zinc-500">
+                        Criado em {new Date(selectedOrder.createdAt).toLocaleString("pt-BR")} · {selectedOrder.totalItems} item(ns)
+                      </p>
+                    </div>
+                    <div className="text-right text-sm text-zinc-300">
+                      <p className="text-neon">${selectedOrder.estimatedSubtotalUsd.toFixed(2)}</p>
+                      <p className="text-xs text-zinc-400">Forma: {selectedOrder.paymentPreference}</p>
+                      <p className="text-xs text-emerald-300">Status pagamento: {paymentStatusLabel(selectedOrder.paymentStatus)}</p>
+                    </div>
                   </div>
-                  <div className="text-right text-sm text-zinc-300">
-                    <p className="text-neon">${order.estimatedSubtotalUsd.toFixed(2)}</p>
-                    <p className="text-xs text-zinc-500">{order.paymentPreference}</p>
-                  </div>
-                </div>
-                <OrderTimeline status={order.orderStatus} />
-                <p className="mt-3 rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-zinc-200">
-                  {order.sellerMessage}
-                </p>
-                <p className="mt-2 text-xs text-zinc-500">
-                  Atualizado em {new Date(order.statusUpdatedAt).toLocaleString("pt-BR")}
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-zinc-300">
-                  {order.items.map((item, idx) => (
-                    <li key={`${order.id}-${idx}`} className="rounded-lg border border-white/10 p-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span>{item.title}</span>
-                        <span className="text-zinc-400">
-                          {item.quantity} × ${item.unitPriceUsd.toFixed(2)}
-                        </span>
-                      </div>
-                      {item.notes && <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
+                  <OrderTimeline status={selectedOrder.orderStatus} />
+                  <p className="mt-3 rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-zinc-200">
+                    {selectedOrder.sellerMessage}
+                  </p>
+                  <p className="mt-2 text-xs text-zinc-500">
+                    Atualizado em {new Date(selectedOrder.statusUpdatedAt).toLocaleString("pt-BR")}
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+                    {selectedOrder.items.map((item, idx) => (
+                      <li key={`${selectedOrder.id}-${idx}`} className="rounded-lg border border-white/10 p-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span>{item.title}</span>
+                          <span className="text-zinc-400">
+                            {item.quantity} × ${item.unitPriceUsd.toFixed(2)}
+                          </span>
+                        </div>
+                        {item.notes && <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

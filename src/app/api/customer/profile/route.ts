@@ -3,11 +3,20 @@ import { requireAuthenticatedUser } from "@/lib/server/dashboard-auth";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
 export const runtime = "edge";
+const avatarBucket = process.env.SUPABASE_AVATAR_BUCKET || "user-avatars";
+
+async function getAvatarUrl(avatarPath: string | null) {
+  if (!avatarPath) return "";
+  const supabase = getSupabaseAdmin();
+  const signed = await supabase.storage.from(avatarBucket).createSignedUrl(avatarPath, 3600);
+  return signed.data?.signedUrl || supabase.storage.from(avatarBucket).getPublicUrl(avatarPath).data.publicUrl;
+}
 
 export async function GET() {
   const auth = await requireAuthenticatedUser();
   if ("response" in auth) return auth.response;
   const meta = (auth.user.user_metadata || {}) as Record<string, unknown>;
+  const avatarPath = (meta.avatar_path as string) || "";
   return NextResponse.json({
     profile: {
       name: (meta.full_name as string) || "",
@@ -18,7 +27,8 @@ export async function GET() {
       city: (meta.city as string) || "",
       state: (meta.state as string) || "",
       zip: (meta.zip as string) || "",
-      country: (meta.country as string) || "USA"
+      country: (meta.country as string) || "USA",
+      avatarUrl: await getAvatarUrl(avatarPath || ((meta.avatar_url as string) || ""))
     }
   });
 }

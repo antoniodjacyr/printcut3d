@@ -10,6 +10,7 @@ type RequestRow = {
   customerPhone: string;
   customerDetails: string;
   paymentPreference: string;
+  paymentStatus: string;
   orderStatus: string;
   sellerMessage: string;
   statusUpdatedAt: string;
@@ -42,14 +43,14 @@ export function QuoteRequestsList({ refreshToken }: { refreshToken?: number }) {
     void load();
   }, [refreshToken]);
 
-  const saveStatus = async (row: RequestRow, orderStatus: string, sellerMessage: string) => {
+  const saveStatus = async (row: RequestRow, orderStatus: string, paymentStatus: string, sellerMessage: string) => {
     setPendingId(row.id);
     setError(null);
     try {
       const response = await fetch("/api/dashboard/quote-requests", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId: row.id, orderStatus, sellerMessage })
+        body: JSON.stringify({ requestId: row.id, orderStatus, paymentStatus, sellerMessage })
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Falha ao atualizar status.");
@@ -59,6 +60,7 @@ export function QuoteRequestsList({ refreshToken }: { refreshToken?: number }) {
             ? {
                 ...item,
                 orderStatus,
+                paymentStatus,
                 sellerMessage,
                 statusUpdatedAt: new Date().toISOString()
               }
@@ -99,7 +101,12 @@ export function QuoteRequestsList({ refreshToken }: { refreshToken?: number }) {
                 <div className="text-right text-xs text-zinc-400">
                   <p>{new Date(row.createdAt).toLocaleString("pt-BR")}</p>
                   <p className="text-neon">Subtotal est.: ${row.estimatedSubtotalUsd.toFixed(2)}</p>
-                  <p>Pagamento: {row.paymentPreference}</p>
+                  <p>
+                    Pagamento: {row.paymentPreference} · Status:{" "}
+                    <span className={row.paymentStatus === "paid" ? "text-emerald-300" : "text-amber-300"}>
+                      {row.paymentStatus}
+                    </span>
+                  </p>
                   <p>Atualizado: {new Date(row.statusUpdatedAt).toLocaleString("pt-BR")}</p>
                 </div>
               </div>
@@ -137,15 +144,16 @@ function StatusEditor({
 }: {
   row: RequestRow;
   pending: boolean;
-  onSave: (row: RequestRow, orderStatus: string, sellerMessage: string) => Promise<void>;
+  onSave: (row: RequestRow, orderStatus: string, paymentStatus: string, sellerMessage: string) => Promise<void>;
 }) {
   const [status, setStatus] = useState(row.orderStatus);
+  const [paymentStatus, setPaymentStatus] = useState(row.paymentStatus || "pending");
   const [message, setMessage] = useState(row.sellerMessage || "");
 
   return (
     <div className="mt-4 rounded-lg border border-white/10 bg-black/30 p-3">
       <p className="text-xs text-zinc-400">Atualizar andamento para o cliente</p>
-      <div className="mt-2 grid gap-2 md:grid-cols-[180px_1fr_auto]">
+      <div className="mt-2 grid gap-2 md:grid-cols-[180px_160px_1fr_auto]">
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -160,6 +168,16 @@ function StatusEditor({
           <option value="shipped">Enviado</option>
           <option value="delivered">Entregue</option>
         </select>
+        <select
+          value={paymentStatus}
+          onChange={(e) => setPaymentStatus(e.target.value)}
+          className="rounded-md border border-white/15 bg-black/40 p-2 text-sm text-zinc-200"
+        >
+          <option value="pending">Pagamento pendente</option>
+          <option value="processing">Processando pagamento</option>
+          <option value="paid">Pagamento confirmado</option>
+          <option value="refunded">Pagamento reembolsado</option>
+        </select>
         <input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -169,7 +187,7 @@ function StatusEditor({
         <button
           type="button"
           disabled={pending}
-          onClick={() => void onSave(row, status, message)}
+          onClick={() => void onSave(row, status, paymentStatus, message)}
           className="rounded-md bg-neon px-3 py-2 text-sm font-semibold text-black disabled:opacity-60"
         >
           {pending ? "Salvando..." : "Salvar"}

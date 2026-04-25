@@ -8,6 +8,7 @@ type ParsedMeta = {
   customer_phone?: string;
   customer_details?: string;
   payment_preference?: string;
+  payment_status?: string;
   item_notes?: string;
   order_status?: string;
   seller_message?: string;
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
         id: cart.id,
         createdAt: cart.created_at,
         status: meta.order_status || "received",
+        paymentStatus: meta.payment_status || "pending",
         sellerMessage: meta.seller_message || "Pedido recebido.",
         statusUpdatedAt: meta.status_updated_at || cart.created_at,
         subtotalEstimatedUsd: Number(subtotal.toFixed(2)),

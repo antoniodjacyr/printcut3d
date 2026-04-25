@@ -9,6 +9,7 @@ type ParsedMeta = {
   customer_phone?: string;
   customer_details?: string;
   payment_preference?: string;
+  payment_status?: string;
   item_notes?: string;
   order_status?: string;
   seller_message?: string;
@@ -60,6 +61,7 @@ export async function GET() {
         customerPhone: meta.customer_phone || "",
         customerDetails: meta.customer_details || "",
         paymentPreference: meta.payment_preference || "to_be_defined",
+        paymentStatus: meta.payment_status || "pending",
         orderStatus: meta.order_status || "received",
         sellerMessage: meta.seller_message || "",
         statusUpdatedAt: meta.status_updated_at || cart.created_at,
@@ -98,10 +100,12 @@ export async function PATCH(request: Request) {
     const body = (await request.json()) as {
       requestId?: string;
       orderStatus?: string;
+      paymentStatus?: string;
       sellerMessage?: string;
     };
     const requestId = body.requestId?.trim();
     const orderStatus = body.orderStatus?.trim();
+    const paymentStatus = body.paymentStatus?.trim();
     if (!requestId || !orderStatus) {
       return NextResponse.json({ error: "Informe requestId e orderStatus." }, { status: 400 });
     }
@@ -125,6 +129,7 @@ export async function PATCH(request: Request) {
       const next = {
         ...current,
         order_status: orderStatus,
+        payment_status: paymentStatus || current.payment_status || "pending",
         seller_message: (body.sellerMessage || "").trim(),
         status_updated_at: now
       };

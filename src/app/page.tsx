@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { MOCK_PRODUCTS } from "@/lib/mock-catalog";
 import { dictionary } from "@/lib/i18n";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -25,6 +24,48 @@ export default function Home() {
   const { locale } = useLocale();
   const t = useMemo(() => dictionary[locale], [locale]);
   const [onlineProducts, setOnlineProducts] = useState<OnlineCatalogProduct[]>([]);
+  const [search, setSearch] = useState("");
+
+  const copy =
+    locale === "pt"
+      ? {
+          catalogTitle: "Catálogo online",
+          catalogDesc: "Veja apenas os produtos disponíveis para compra no carrinho.",
+          searchPlaceholder: "Buscar produto por nome, descrição ou tag...",
+          details: "Ver detalhes",
+          available: "Disponível online",
+          noResults: "Nenhum produto encontrado para essa busca.",
+          noProducts: "Nenhum produto disponível no momento."
+        }
+      : locale === "es"
+        ? {
+            catalogTitle: "Catálogo online",
+            catalogDesc: "Aquí se muestran solo productos disponibles para compra en el carrito.",
+            searchPlaceholder: "Buscar por nombre, descripción o etiqueta...",
+            details: "Ver detalles",
+            available: "Disponible online",
+            noResults: "No se encontraron productos para esta búsqueda.",
+            noProducts: "No hay productos disponibles por ahora."
+          }
+        : {
+            catalogTitle: "Online catalog",
+            catalogDesc: "Only products available for cart purchase are shown here.",
+            searchPlaceholder: "Search by name, description, or tag...",
+            details: "View details",
+            available: "Available online",
+            noResults: "No products found for this search.",
+            noProducts: "No products available right now."
+          };
+
+  const filteredProducts = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return onlineProducts;
+    return onlineProducts.filter((item) => {
+      const title = (item.title[locale] || item.title.en || "").toLowerCase();
+      const description = (item.description[locale] || item.description.en || "").toLowerCase();
+      return title.includes(term) || description.includes(term);
+    });
+  }, [onlineProducts, search, locale]);
 
   useEffect(() => {
     const load = async () => {
@@ -99,15 +140,22 @@ export default function Home() {
       <section id="catalog" className="border-y border-white/10 bg-black/20 py-16">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white">Featured builds</h2>
-            <p className="mt-1 text-sm text-zinc-500">Itens online sem checkout: envie solicitação direto pelo botão.</p>
+            <h2 className="text-2xl font-bold text-white">{copy.catalogTitle}</h2>
+            <p className="mt-1 text-sm text-zinc-500">{copy.catalogDesc}</p>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={copy.searchPlaceholder}
+              className="mt-4 w-full max-w-xl rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-neon/50 focus:outline-none"
+            />
           </div>
-          {onlineProducts.length > 0 && (
-            <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {onlineProducts.map((item) => (
+
+          {filteredProducts.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredProducts.map((item) => (
                 <article
                   key={item.id}
-                  className="tech-card flex h-full flex-col rounded-2xl p-5 transition hover:border-neon/30 hover:ring-1 hover:ring-neon/20"
+                  className="tech-card flex h-full flex-col rounded-2xl p-4 transition hover:border-neon/30 hover:ring-1 hover:ring-neon/20"
                 >
                   {item.imageUrl ? (
                     <Image
@@ -116,42 +164,31 @@ export default function Home() {
                       width={640}
                       height={480}
                       unoptimized
-                      className="mb-4 aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-white/10"
+                      className="mb-3 aspect-[4/2.6] w-full rounded-xl object-cover ring-1 ring-white/10"
                     />
                   ) : (
-                    <div className="mb-4 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-white/10" />
+                    <div className="mb-3 aspect-[4/2.6] w-full rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-white/10" />
                   )}
-                  <p className="text-xs font-medium uppercase tracking-wide text-emerald-300">Disponível online</p>
-                  <h3 className="mt-1 text-lg font-semibold text-white">{item.title[locale] || item.title.en || "Produto"}</h3>
-                  <p className="mt-2 text-sm text-zinc-300">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-300">{copy.available}</p>
+                  <h3 className="mt-1 text-base font-semibold text-white">{item.title[locale] || item.title.en || "Produto"}</h3>
+                  <p className="mt-1 text-sm text-zinc-300">
                     {item.description[locale] || item.description.en || "Descrição indisponível."}
                   </p>
-                  <p className="mt-3 text-2xl font-bold text-white">${Number(item.priceUsd).toFixed(2)}</p>
+                  <p className="mt-2 text-xl font-bold text-white">${Number(item.priceUsd).toFixed(2)}</p>
                   <Link
                     href={`/produto-online/${item.id}`}
-                    className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-neon/40 py-2 text-sm text-neon hover:bg-neon/10"
+                    className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-neon/40 py-1.5 text-sm text-neon hover:bg-neon/10"
                   >
-                    Ver detalhes
+                    {copy.details}
                   </Link>
                 </article>
               ))}
             </div>
+          ) : (
+            <p className="rounded-lg border border-white/10 bg-black/25 p-4 text-sm text-zinc-400">
+              {onlineProducts.length === 0 ? copy.noProducts : copy.noResults}
+            </p>
           )}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {MOCK_PRODUCTS.map((sku) => (
-              <Link key={sku.slug} href={`/product/${sku.slug}`} className="group block">
-                <article className="tech-card flex h-full flex-col rounded-2xl p-5 transition group-hover:border-neon/30 group-hover:ring-1 group-hover:ring-neon/20">
-                  <div className="mb-4 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 ring-1 ring-white/10" />
-                  <p className="text-xs font-medium uppercase tracking-wide text-neon">{sku.shortBadge[locale]}</p>
-                  <h3 className="mt-1 text-lg font-semibold text-white group-hover:text-neon">{sku.title[locale]}</h3>
-                  <p className="mt-2 text-2xl font-bold text-white">${sku.priceUsd.toFixed(2)}</p>
-                  <span className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-white/15 py-2 text-sm text-zinc-200 group-hover:border-neon/40 group-hover:text-neon">
-                    {t.productView}
-                  </span>
-                </article>
-              </Link>
-            ))}
-          </div>
         </div>
       </section>
 
