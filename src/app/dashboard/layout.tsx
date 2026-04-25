@@ -2,6 +2,8 @@ import { DashboardTopBar } from "@/components/dashboard/dashboard-top-bar";
 import { redirect } from "next/navigation";
 import { getAuthenticatedUserOrNull, isUserAdmin } from "@/lib/server/dashboard-auth";
 
+export const runtime = "edge";
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const auth = await getAuthenticatedUserOrNull();
   if ("response" in auth || !auth.user) {
